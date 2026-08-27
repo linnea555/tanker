@@ -1127,8 +1127,8 @@
             // ║  2. 左侧 SQL Editor 粘贴运行《云端排行榜-安装SQL.sql》里的语句        ║
             // ║  3. 设置→API 页复制 Project URL 和 anon public key 填到下面         ║
             // ╚════════════════════════════════════════════════════════════════╝
-            const SUPABASE_URL = '';      // 例如 'https://abcd1234.supabase.co'
-            const SUPABASE_ANON_KEY = '';  // eyJ 开头的一长串（anon public，不是 service_role!）
+            const SUPABASE_URL = 'https://fzoqpswphagklbitntav.supabase.co';      // tank-leaderboard 项目
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6b3Fwc3dwaGFna2xiaXRudGF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4Mzk4NjYsImV4cCI6MjEwMzQxNTg2Nn0.TIL7VbrScuDv8KzQBFwavDeGMlEcaO5KMeskLNJu-cw';  // anon public，可放前端
 
             // 云端排行榜网络层：失败自动回退本地，不影响游戏
             const CloudLB = {
@@ -1139,7 +1139,7 @@
                 headers() { return { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }; },
                 // 提交一局成绩（只升不降，服务端保证）
                 submit(name, mode, level, score, wave) {
-                    if (!this.enabled() || !name || !(score > 0)) return;
+                    if (!this.enabled() || typeof fetch === 'undefined' || !name || !(score > 0)) return;
                     fetch(SUPABASE_URL + '/rest/v1/rpc/submit_score', {
                         method: 'POST',
                         headers: this.headers(),
@@ -1149,7 +1149,7 @@
                 },
                 // 拉取某榜 Top 榜（10 秒内同参数直接用缓存）
                 top(mode, level, limit) {
-                    if (!this.enabled()) return Promise.resolve(null);
+                    if (!this.enabled() || typeof fetch === 'undefined') return Promise.resolve(null);
                     const key = mode + ':' + level + ':' + limit;
                     const c = this.cache[key];
                     if (c && Date.now() - c.time < 10000) return Promise.resolve(c.rows);
@@ -3277,6 +3277,8 @@
                 p.totalKills = (p.totalKills || 0) + (g.killsThisRun || 0);
                 p.updatedAt = Date.now();
                 Storage.set('leaderboard', leaderboard);
+                // 云端同步（只升不降，失败静默，不影响本机）
+                CloudLB.submit(playerName, g.mode, g.levelIndex || 0, g.score, g.wave || 0);
                 if (currentScreen === 'leaderboard-screen') renderLeaderboard();
                 return isRecord;
             }
@@ -3338,8 +3340,33 @@
                     b.type = 'button';
                     b.className = 'lb-level' + (i === lbLevel ? ' active' : '');
                     b.textContent = i + 1;
-                    b.onclick = () => { lbLevel = i; renderLbLevels(); renderLbClassic(); };
+                    b.onclick = () => { lbLevel = i; renderLeaderboard(); };
                     box.appendChild(b);
+                });
+            }
+
+            // 云端数据状态：null=未加载/失败（显示本机榜）；数组=已拿到云端榜单
+            let lbCloudRows = null;
+
+            function cloudTitleNote() {
+                if (!CloudLB.enabled()) return '';
+                if (lbCloudRows) return ' · ☁️ 全球榜';
+                if (CloudLB.tried && !CloudLB.ok) return ' · ⚠️ 云端离线，显示本机榜';
+                return ' · ☁️ 连接中…';
+            }
+
+            function refreshCloudView() {
+                if (!CloudLB.enabled() || currentScreen !== 'leaderboard-screen') return;
+                const p = (lbMode === 'classic') ?
+                    CloudLB.top('classic', lbLevel, 10) :
+                    CloudLB.top('endless', 0, 20);
+                p.then(rows => {
+                    if (!rows) return; // 失败保持本地榜
+                    if (JSON.stringify(rows) !== JSON.stringify(lbCloudRows)) {
+                        lbCloudRows = rows;
+                        if (lbMode === 'classic') renderLbClassic();
+                        else renderLbEndless();
+                    }
                 });
             }
 
@@ -3347,11 +3374,16 @@
                 const list = document.getElementById('lb-classic-list');
                 if (!list) return;
                 const key = String(lbLevel);
-                const all = Object.values(leaderboard.players)
-                    .map(p => ({ name: p.name, score: (p.classic && p.classic[key]) || 0 }))
-                    .filter(r => r.score > 0)
-                    .sort((a, b) => b.score - a.score);
-                let html = `<div class="lb-title">关卡 ${lbLevel + 1} 排行</div>`;
+                let all;
+                if (lbCloudRows) {
+                    all = lbCloudRows.map(r => ({ name: r.player, score: r.score || 0 })).filter(r => r.score > 0);
+                } else {
+                    all = Object.values(leaderboard.players)
+                        .map(p => ({ name: p.name, score: (p.classic && p.classic[key]) || 0 }))
+                        .filter(r => r.score > 0)
+                        .sort((a, b) => b.score - a.score);
+                }
+                let html = `<div class="lb-title">关卡 ${lbLevel + 1} 排行${cloudTitleNote()}</div>`;
                 if (!all.length) {
                     html += '<div class="lb-empty">还没有人上榜，快来创造第一个纪录！🎮</div>';
                 } else {
@@ -3364,8 +3396,9 @@
                     const mine = document.createElement('div');
                     mine.className = 'lb-mine';
                     if (myScore > 0) {
-                        const rank = all.findIndex(r => r.name.toLowerCase() === playerName.toLowerCase()) + 1;
-                        mine.innerHTML = `我的最佳：<span class="highlight">${myScore} 分</span> · 第 ${rank} 名 / 共 ${all.length} 人`;
+                        const idx = all.findIndex(r => r.name.toLowerCase() === playerName.toLowerCase());
+                        const rank = idx >= 0 ? idx + 1 : 0;
+                        mine.innerHTML = `我的最佳：<span class="highlight">${myScore} 分</span>` + (rank > 0 ? ` · 第 ${rank} 名 / 共 ${all.length} 人` : ' · 暂未进入榜单');
                     } else {
                         mine.innerHTML = '这一关我还没成绩，快去打一局！';
                     }
@@ -3376,11 +3409,16 @@
             function renderLbEndless() {
                 const list = document.getElementById('lb-endless-list');
                 if (!list) return;
-                const all = Object.values(leaderboard.players)
-                    .map(p => ({ name: p.name, score: (p.endless && p.endless.score) || 0, wave: (p.endless && p.endless.wave) || 0 }))
-                    .filter(r => r.score > 0)
-                    .sort((a, b) => b.score - a.score);
-                let html = '<div class="lb-title">无尽模式 · 最高分排行</div>';
+                let all;
+                if (lbCloudRows) {
+                    all = lbCloudRows.map(r => ({ name: r.player, score: r.score || 0, wave: r.wave || 0 })).filter(r => r.score > 0);
+                } else {
+                    all = Object.values(leaderboard.players)
+                        .map(p => ({ name: p.name, score: (p.endless && p.endless.score) || 0, wave: (p.endless && p.endless.wave) || 0 }))
+                        .filter(r => r.score > 0)
+                        .sort((a, b) => b.score - a.score);
+                }
+                let html = `<div class="lb-title">无尽模式 · 最高分排行${cloudTitleNote()}</div>`;
                 if (!all.length) {
                     html += '<div class="lb-empty">还没有人上榜，快来挑战无尽模式！♾️</div>';
                 } else {
@@ -3396,8 +3434,9 @@
                     const mine = document.createElement('div');
                     mine.className = 'lb-mine';
                     if (myScore > 0) {
-                        const rank = all.findIndex(r => r.name.toLowerCase() === playerName.toLowerCase()) + 1;
-                        mine.innerHTML = `我的最佳：<span class="highlight">${myScore} 分</span> · 波次 ${me.endless.wave} · 第 ${rank} 名 / 共 ${all.length} 人`;
+                        const idx = all.findIndex(r => r.name.toLowerCase() === playerName.toLowerCase());
+                        const rank = idx >= 0 ? idx + 1 : 0;
+                        mine.innerHTML = `我的最佳：<span class="highlight">${myScore} 分</span> · 波次 ${me.endless.wave}` + (rank > 0 ? ` · 第 ${rank} 名 / 共 ${all.length} 人` : ' · 暂未进入榜单');
                     } else {
                         mine.innerHTML = '无尽模式我还没成绩，快去挑战！';
                     }
@@ -3415,6 +3454,7 @@
                 if (classicView) classicView.style.display = lbMode === 'classic' ? '' : 'none';
                 if (endlessView) endlessView.style.display = lbMode === 'endless' ? '' : 'none';
                 if (lbMode === 'classic') { renderLbLevels(); renderLbClassic(); } else { renderLbEndless(); }
+                refreshCloudView();
             }
 
             // ---------- 地图编辑器 ----------
@@ -3586,6 +3626,8 @@
             window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && currentScreen !== 'menu-screen' && !
                     gameInstance) showScreen('menu-screen'); });
             window.addEventListener('resize', updateHudScale);
+            // 排行榜轮询：在排行榜页时每 15s 自动刷新云端数据
+            if (typeof setInterval !== 'undefined') setInterval(() => { refreshCloudView(); }, 15000);
             init();
             ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
             renderMenuBackground();
