@@ -337,9 +337,9 @@
             display: none;
             position: fixed;
             left: 50%;
-            transform: translateX(calc(-50% + var(--ctl-x, 0px))) scale(var(--ctl-scale, 1.2));
+            transform: translateX(calc(-50% + var(--ctl-x, 0px))) scale(var(--ctl-scale, 1.55));
             transform-origin: bottom center;
-            bottom: calc(var(--ctl-bottom, 56px) + env(safe-area-inset-bottom, 0px));
+            bottom: calc(var(--ctl-bottom, 88px) + env(safe-area-inset-bottom, 0px));
             width: min(100% - 12px, 780px);
             justify-content: center;
             padding: 0 14px;
@@ -383,36 +383,14 @@
         .dpad-btn#m-right {
             grid-area: right;
         }
-        .joystick-container {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            position: relative;
-            pointer-events: auto;
-            touch-action: none;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-        .joystick-knob {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.5);
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
         @media (max-width:600px) {
             .mobile-controls {
                 display: flex;
                 position: fixed;
                 left: 50%;
-                transform: translateX(calc(-50% + var(--ctl-x, 0px))) scale(var(--ctl-scale, 1.2));
+                transform: translateX(calc(-50% + var(--ctl-x, 0px))) scale(var(--ctl-scale, 1.55));
                 transform-origin: bottom center;
-                bottom: calc(var(--ctl-bottom, 56px) + env(safe-area-inset-bottom, 0px));
+                bottom: calc(var(--ctl-bottom, 88px) + env(safe-area-inset-bottom, 0px));
                 width: min(100% - 12px, 780px);
                 margin-top: 0;
                 padding: 0 14px;
@@ -422,14 +400,6 @@
                 width: 52px;
                 height: 52px;
                 font-size: 1.2rem;
-            }
-            .joystick-container {
-                width: 100px;
-                height: 100px;
-            }
-            .joystick-knob {
-                width: 40px;
-                height: 40px;
             }
             h1 {
                 font-size: 1.8rem;
@@ -585,29 +555,6 @@
         .mobile-pause-btn:active {
             background: rgba(76, 175, 80, 0.6);
         }
-        .landscape-btn {
-            position: fixed;
-            top: calc(10px + env(safe-area-inset-top, 0px));
-            right: 60px;
-            z-index: 90;
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 20px;
-            width: 40px;
-            height: 40px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 1.2rem;
-            color: #fff;
-            pointer-events: auto;
-            transition: background 0.2s;
-        }
-        .landscape-btn.active {
-            background: rgba(76, 175, 80, 0.6);
-            border-color: #4caf50;
-        }
         .pause-overlay {
             position: fixed;
             inset: 0;
@@ -648,50 +595,11 @@
         .pause-box .btn {
             width: 100%;
         }
-        /* 虚拟横屏：把整个应用旋转 90° 铺满屏幕（iOS 无法锁屏时兜底） */
-        body.virtual-landscape {
-            overflow: hidden;
-        }
-        body.virtual-landscape #app {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            width: 100vh;
-            width: 100dvh;
-            height: 100vw;
-            height: 100dvw;
-            max-width: none;
-            max-height: none;
-            transform: translate(-50%, -50%) rotate(90deg);
-        }
-        #ui-toast {
-            position: fixed;
-            top: calc(16px + env(safe-area-inset-top, 0px));
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.85);
-            color: #ffd700;
-            border: 2px solid rgba(255, 215, 0, 0.6);
-            border-radius: 8px;
-            padding: 8px 18px;
-            font-size: 0.95rem;
-            z-index: 200;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.25s;
-            white-space: nowrap;
-            max-width: 92vw;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        #ui-toast.show {
-            opacity: 1;
-        }
         /* 手机竖屏：画布避开顶部按钮行与底部虚拟键 */
         @media (max-width:600px) and (orientation:portrait) {
             #game-screen {
                 padding-top: 58px;
-                padding-bottom: 185px;
+                padding-bottom: 285px;
             }
         }
         /* 手机横屏：画布尽量占满，虚拟键收进两侧角落 */
@@ -710,14 +618,6 @@
                 width: 46px;
                 height: 46px;
                 font-size: 1.1rem;
-            }
-            .joystick-container {
-                width: 92px;
-                height: 92px;
-            }
-            .joystick-knob {
-                width: 36px;
-                height: 36px;
             }
         }
         .setting-item {
@@ -1014,72 +914,6 @@
             }
         }
 
-        /* 控制选择模态框 */
-        .control-modal {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 200;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 30px;
-        }
-        .control-modal.active {
-            display: flex;
-        }
-        .control-modal .modal-box {
-            background: var(--panel);
-            border: 3px solid var(--border);
-            border-radius: 8px;
-            padding: 30px 24px 24px;
-            max-width: 420px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
-        }
-        .control-modal .modal-box h2 {
-            color: var(--accent);
-            margin-bottom: 8px;
-            font-size: 1.6rem;
-        }
-        .control-modal .modal-box p {
-            color: #aaa;
-            margin-bottom: 20px;
-            font-size: 0.95rem;
-        }
-        .control-modal .modal-btns {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .control-modal .modal-btns .btn {
-            min-width: 120px;
-            padding: 14px 18px;
-            font-size: 1.1rem;
-        }
-        .control-modal .modal-btns .btn.joystick-btn {
-            border-color: #4fc3f7;
-            color: #4fc3f7;
-        }
-        .control-modal .modal-btns .btn.joystick-btn:hover {
-            background: #1a3a4a;
-            border-color: #81d4fa;
-        }
-        .control-modal .modal-btns .btn.dpad-btn {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-        .control-modal .modal-btns .btn.dpad-btn:hover {
-            background: #3a3a1a;
-            border-color: #f2c14e;
-        }
-
         .progress-info {
             display: flex;
             justify-content: center;
@@ -1106,7 +940,6 @@
             <canvas id="gameCanvas" width="480" height="416"></canvas>
             <button id="mobile-toggle-btn" class="mobile-toggle-btn" title="切换移动端虚拟按键">📱</button>
             <button id="mobile-pause-btn" class="mobile-pause-btn" title="暂停/继续">⏸</button>
-            <button id="landscape-btn" class="landscape-btn" title="横屏全屏游玩">⛶</button>
             <div id="pause-overlay" class="pause-overlay">
                 <div class="pause-box">
                     <h2>⏸ 已暂停</h2>
@@ -1118,7 +951,6 @@
                 </div>
             </div>
         </div>
-        <div id="ui-toast"></div>
 
         <!-- 设备类型选择模态框 -->
         <div class="device-modal" id="device-modal">
@@ -1128,18 +960,6 @@
                 <div class="modal-btns">
                     <button class="btn pc-btn" id="device-pc">💻 电脑端</button>
                     <button class="btn mobile-btn" id="device-mobile">📱 手机端</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 控制方式选择模态框 -->
-        <div class="control-modal" id="control-modal">
-            <div class="modal-box">
-                <h2>🎮 选择操控方式</h2>
-                <p>请选择您喜欢的移动端操控方式</p>
-                <div class="modal-btns">
-                    <button class="btn dpad-btn" id="modal-dpad">十字键</button>
-                    <button class="btn joystick-btn" id="modal-joystick">摇杆</button>
                 </div>
             </div>
         </div>
@@ -1182,9 +1002,6 @@
         <div class="screen" id="settings-screen">
             <div class="panel">
                 <h2>设置</h2>
-                <div class="setting-item"><span style="font-weight:bold; color:#ccc;">移动方式：</span>
-                    <div class="setting-option"><button class="setting-btn" id="set-dpad">十字键</button><button class="setting-btn" id="set-joystick">摇杆</button></div>
-                </div>
                 <div class="setting-item"><span style="font-weight:bold; color:#ccc;">虚拟按键（手机）：</span>
                     <div class="setting-option ctl-custom">
                         <label class="ctl-slider"><span>大小</span><input type="range" id="set-ctl-size" min="60" max="200" step="5"><b id="ctl-size-val"></b></label>
@@ -1213,7 +1030,7 @@
                     <button class="tutorial-tab" data-tab="tab-tips" type="button">💡 技巧</button>
                 </div>
                 <div class="tutorial-page active" id="tab-basic">
-                    <div class="tutorial-highlight"><strong>操作方式：</strong><br>🖥️ 桌面端：WASD / 方向键移动，空格键射击，P键暂停<br>📱 移动端：摇杆移动，自动开火（大小/位置/透明度可在设置中调节）</div>
+                    <div class="tutorial-highlight"><strong>操作方式：</strong><br>🖥️ 桌面端：WASD / 方向键移动，空格键射击，P键暂停<br>📱 移动端：十字键移动，自动开火（虚拟键大小/位置/透明度可在设置中调节）</div>
                     <div class="tutorial-highlight"><strong>游戏目标：</strong><br>🛡️ 保护下方的 <span style="color:#ffd700;">金色基地</span>，消灭所有敌方坦克过关<br>⭐ 击杀敌人会掉落道具，拾取可强化火力、护盾、生命</div>
                     <div class="tutorial-highlight" style="border-color:#ff3333; background:rgba(255,0,0,0.1);"><span class="red-warning">⚠️ 基地 3 格耐久：被打受损会触发警报，耐久耗尽游戏结束；铁铲可修复 1 格</span></div>
                 </div>
@@ -1299,7 +1116,6 @@
 
         <div class="mobile-controls" id="mobile-controls">
             <div class="dpad" id="dpad-container"><button class="dpad-btn" id="m-up">▲</button><button class="dpad-btn" id="m-left">◀</button><button class="dpad-btn" id="m-down">▼</button><button class="dpad-btn" id="m-right">▶</button></div>
-            <div class="joystick-container hidden" id="joystick-container"><div class="joystick-knob" id="joystick-knob"></div></div>
         </div>
     </div>
 
@@ -1968,19 +1784,17 @@
             let lbLevel = 0;
             let unlockedAchievements = Storage.get('achievements', []);
             let settings = Storage.get('settings', {
-                controlType: 'dpad',
                 deviceType: null,
-                controlTypeSet: false,
                 bgm: true,
-                ctlScale: 1.2,
+                ctlScale: 1.55,
                 ctlX: 0,
-                ctlBottom: 56,
+                ctlBottom: 88,
                 ctlOpacity: 1
             });
             settings.bgm = settings.bgm !== false;
-            settings.ctlScale = settings.ctlScale == null ? 1.2 : settings.ctlScale;
+            settings.ctlScale = settings.ctlScale == null ? 1.55 : settings.ctlScale;
             settings.ctlX = settings.ctlX == null ? 0 : settings.ctlX;
-            settings.ctlBottom = settings.ctlBottom == null ? 56 : settings.ctlBottom;
+            settings.ctlBottom = settings.ctlBottom == null ? 88 : settings.ctlBottom;
             settings.ctlOpacity = settings.ctlOpacity == null ? 1 : settings.ctlOpacity;
 
             let isMobileDevice = false;
@@ -2000,7 +1814,6 @@
                 if (settings.deviceType === 'pc') {
                     isMobileDevice = false;
                     showMobileControls = false;
-                    settings.controlTypeSet = true;
                 } else if (settings.deviceType === 'mobile') {
                     isMobileDevice = true;
                     showMobileControls = Storage.get('showMobileControls', true);
@@ -2115,30 +1928,39 @@
                 ctx.drawImage(mapCanvas, 0, 0);
             }
 
-            function drawHUD(game) { drawPixelText('得分: ' + game.score, 8, 20, '#f2c14e', 14, 'left');
-                drawPixelText('波次: ' + game.wave, 8, 40, '#4fc3f7', 14, 'left'); const lifeStars = '★'.repeat(game
+            // HUD 文字按画布实际显示比例放大（手机小屏上保证可读，桌面不变）
+            let hudScale = 1;
+            function updateHudScale() {
+                const r = canvas.getBoundingClientRect();
+                const disp = (r.width > 0) ? r.width / CANVAS_W : 1;
+                hudScale = Math.max(1, Math.min(2.2, 17 / (14 * disp)));
+            }
+
+            function drawHUD(game) { const s = hudScale;
+                drawPixelText('得分: ' + game.score, 8, 20 * s, '#f2c14e', 14 * s, 'left');
+                drawPixelText('波次: ' + game.wave, 8, 40 * s, '#4fc3f7', 14 * s, 'left'); const lifeStars = '★'.repeat(game
                     .playerLives) + '☆'.repeat(Math.max(0, 5 - game.playerLives));
-                drawPixelText('生命: ' + lifeStars, CANVAS_W - 120, 20, '#ef5350', 14, 'left');
-                drawPixelText('敌人: ' + game.enemiesRemaining, CANVAS_W - 120, 40, '#aaa', 14, 'left'); if (game
+                drawPixelText('生命: ' + lifeStars, CANVAS_W - 120 * s, 20 * s, '#ef5350', 14 * s, 'left');
+                drawPixelText('敌人: ' + game.enemiesRemaining, CANVAS_W - 120 * s, 40 * s, '#aaa', 14 * s, 'left'); if (game
                     .baseAlive) { if (game.baseHp >= 3) {
-                        drawPixelText('基地: 安全', CANVAS_W - 120, CANVAS_H - 16, '#4caf50', 12, 'left');
+                        drawPixelText('基地: 安全', CANVAS_W - 120 * s, CANVAS_H - 16 * s, '#4caf50', 12 * s, 'left');
                     } else if (game.baseHp === 2) {
                         const dmgBlink = Math.floor(performance.now() / 250) % 2 === 0;
-                        drawPixelText('基地: 受损!', CANVAS_W - 120, CANVAS_H - 16, dmgBlink ? '#ff9800' : '#ff5722', 12, 'left');
+                        drawPixelText('基地: 受损!', CANVAS_W - 120 * s, CANVAS_H - 16 * s, dmgBlink ? '#ff9800' : '#ff5722', 12 * s, 'left');
                     } else {
                         const blink = Math.floor(performance.now() / 300) % 2 === 0;
-                        drawPixelText('基地: 濒危!', CANVAS_W - 120, CANVAS_H - 16, blink ? '#ff5252' : '#ffb300', 12, 'left');
+                        drawPixelText('基地: 濒危!', CANVAS_W - 120 * s, CANVAS_H - 16 * s, blink ? '#ff5252' : '#ffb300', 12 * s, 'left');
                     } } else {
-                    drawPixelText('基地: 已摧毁', CANVAS_W - 120, CANVAS_H - 16, '#f44336', 12, 'left'); }                 let weaponText = '🔫'.repeat(game.playerPower);
+                    drawPixelText('基地: 已摧毁', CANVAS_W - 120 * s, CANVAS_H - 16 * s, '#f44336', 12 * s, 'left'); }                 let weaponText = '🔫'.repeat(game.playerPower);
                 if (game.specialWeapon && game.specialWeaponTimer > 0) { const t = Math.ceil(game.specialWeaponTimer);
                     const urgent = game.specialWeaponTimer <= 3 && Math.floor(game.specialWeaponTimer * 4) % 2 === 0;
-                    drawPixelText(WEAPON_NAMES[game.specialWeapon] + ' ' + t + 's', 8, CANVAS_H - 36, urgent ?
-                        '#ff5252' : '#4fc3f7', 12, 'left');
+                    drawPixelText(WEAPON_NAMES[game.specialWeapon] + ' ' + t + 's', 8, CANVAS_H - 36 * s, urgent ?
+                        '#ff5252' : '#4fc3f7', 12 * s, 'left');
                     ctx.fillStyle = 'rgba(79,195,247,0.35)';
-                    ctx.fillRect(8, CANVAS_H - 30, 96, 4);
+                    ctx.fillRect(8, CANVAS_H - 30 * s, 96 * s, 4);
                     ctx.fillStyle = urgent ? '#ff5252' : '#4fc3f7';
-                    ctx.fillRect(8, CANVAS_H - 30, 96 * (game.specialWeaponTimer / WEAPON_DURATION), 4); }
-                drawPixelText('武器: ' + weaponText, 8, CANVAS_H - 16, '#ba68c8', 12, 'left');
+                    ctx.fillRect(8, CANVAS_H - 30 * s, 96 * s * (game.specialWeaponTimer / WEAPON_DURATION), 4); }
+                drawPixelText('武器: ' + weaponText, 8, CANVAS_H - 16 * s, '#ba68c8', 12 * s, 'left');
                 drawPixelText('MYH', CANVAS_W - 10, CANVAS_H - 8, 'rgba(255,255,255,0.5)', 10, 'right'); }
 
             function drawPowerup(p) { const x = p.x,
@@ -3232,89 +3054,7 @@
             });
             document.getElementById('btn-pause-menu').addEventListener('click', exitToMenu);
 
-            // ---------- 横屏/全屏游玩 ----------
-            (function() {
-                const lbBtn = document.getElementById('landscape-btn');
-                const pauseBtn = document.getElementById('mobile-pause-btn');
-                if (!lbBtn || !pauseBtn) return;
-                let landscapeOn = false;
-                let toastTimer = null;
-                function uiToast(msg) {
-                    const t = document.getElementById('ui-toast');
-                    if (!t) return;
-                    t.textContent = msg;
-                    t.classList.add('show');
-                    clearTimeout(toastTimer);
-                    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
-                }
-                function resetBtn() {
-                    landscapeOn = false;
-                    lbBtn.classList.remove('active');
-                    lbBtn.textContent = '⛶';
-                }
-                async function toggleLandscape() {
-                    const el = document.documentElement;
-                    try {
-                        if (!landscapeOn) {
-                            let realLocked = false;
-                            if (el.requestFullscreen) { try { await el.requestFullscreen(); } catch (e) {} }
-                            else if (el.webkitRequestFullscreen) { try { el.webkitRequestFullscreen(); } catch (e) {} }
-                            if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.lock) {
-                                try { await screen.orientation.lock('landscape'); realLocked = true; } catch (e) {}
-                            }
-                            if (!realLocked) {
-                                // iOS/不支持锁屏：用 CSS 把画面旋转 90° 实现虚拟横屏
-                                document.body.classList.add('virtual-landscape');
-                            }
-                            landscapeOn = true;
-                            lbBtn.classList.add('active');
-                            lbBtn.textContent = '⤡';
-                            uiToast(realLocked ? '已进入横屏模式' : '画面已旋转，请把手机横过来玩');
-                        } else {
-                            document.body.classList.remove('virtual-landscape');
-                            if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
-                                try { screen.orientation.unlock(); } catch (e) {}
-                            }
-                            if (document.fullscreenElement && document.exitFullscreen) { try { await document.exitFullscreen(); } catch (e) {} }
-                            else if (document.webkitFullscreenElement && document.webkitExitFullscreen) { try { document.webkitExitFullscreen(); } catch (e) {} }
-                            resetBtn();
-                            uiToast('已退出横屏模式');
-                        }
-                    } catch (e) {
-                        resetBtn();
-                        uiToast('切换失败，请手动旋转手机');
-                    }
-                }
-                lbBtn.addEventListener('click', toggleLandscape);
-                // 退出全屏（系统手势/返回键）时同步按钮状态并去掉虚拟横屏
-                function onFullscreenExit() {
-                    if (typeof document !== 'undefined' && !document.fullscreenElement && !document.webkitFullscreenElement && landscapeOn) {
-                        document.body.classList.remove('virtual-landscape');
-                        resetBtn();
-                    }
-                }
-                window.addEventListener('fullscreenchange', onFullscreenExit);
-                window.addEventListener('webkitfullscreenchange', onFullscreenExit);
-                // 物理旋转手机时同步：真横屏就关掉 CSS 旋转，回竖屏再开回来
-                window.addEventListener('orientationchange', function() {
-                    if (!landscapeOn) return;
-                    setTimeout(function() {
-                        const isRealLandscape = window.innerWidth > window.innerHeight;
-                        document.body.classList.toggle('virtual-landscape', !isRealLandscape);
-                    }, 300);
-                });
-                // 横屏按钮跟随暂停按钮显隐（游戏内才出现）
-                if (typeof MutationObserver !== 'undefined') {
-                    new MutationObserver(function() {
-                        lbBtn.style.display = pauseBtn.style.display;
-                    }).observe(pauseBtn, { attributes: true, attributeFilter: ['style'] });
-                }
-                lbBtn.style.display = pauseBtn.style.display;
-            })();
-
             function updateSettingsUI() {
-                document.getElementById('set-dpad').classList.toggle('active', settings.controlType === 'dpad');
-                document.getElementById('set-joystick').classList.toggle('active', settings.controlType === 'joystick');
                 document.getElementById('set-device-pc').classList.toggle('active', settings.deviceType === 'pc');
                 document.getElementById('set-device-mobile').classList.toggle('active', settings.deviceType === 'mobile');
                 const bgmBtn = document.getElementById('set-bgm');
@@ -3332,14 +3072,7 @@
 
             function updateControlVisibility() {
                 const dpad = document.getElementById('dpad-container');
-                const joystick = document.getElementById('joystick-container');
-                if (settings.controlType === 'dpad') {
-                    dpad.classList.remove('hidden');
-                    joystick.classList.add('hidden');
-                } else {
-                    dpad.classList.add('hidden');
-                    joystick.classList.remove('hidden');
-                }
+                if (dpad) dpad.classList.remove('hidden');
             }
 
             // ---------- 设备选择模态框 ----------
@@ -3354,7 +3087,6 @@
                 mobileBtn.replaceWith(newMobile);
                 newPc.addEventListener('click', () => {
                     settings.deviceType = 'pc';
-                    settings.controlTypeSet = true;
                     isMobileDevice = false;
                     showMobileControls = false;
                     Storage.set('settings', settings);
@@ -3370,49 +3102,14 @@
                 newMobile.addEventListener('click', () => {
                     settings.deviceType = 'mobile';
                     isMobileDevice = true;
-                    settings.controlTypeSet = false;
                     Storage.set('settings', settings);
                     modal.classList.remove('active');
                     updateSettingsUI();
                     updateControlVisibility();
                     showMobileControls = true;
                     Storage.set('showMobileControls', showMobileControls);
-                    showControlModal(() => {
-                        if (callback) callback();
-                        updateProgressInfo();
-                    });
-                });
-            }
-
-            // ---------- 控制方式选择模态框 ----------
-            function showControlModal(callback) {
-                if (!isMobileDevice) {
                     if (callback) callback();
-                    return;
-                }
-                const modal = document.getElementById('control-modal');
-                modal.classList.add('active');
-                const newDpad = document.getElementById('modal-dpad').cloneNode(true);
-                const newJoystick = document.getElementById('modal-joystick').cloneNode(true);
-                document.getElementById('modal-dpad').replaceWith(newDpad);
-                document.getElementById('modal-joystick').replaceWith(newJoystick);
-                newDpad.addEventListener('click', () => {
-                    settings.controlType = 'dpad';
-                    settings.controlTypeSet = true;
-                    Storage.set('settings', settings);
-                    modal.classList.remove('active');
-                    updateSettingsUI();
-                    updateControlVisibility();
-                    if (callback) callback();
-                });
-                newJoystick.addEventListener('click', () => {
-                    settings.controlType = 'joystick';
-                    settings.controlTypeSet = true;
-                    Storage.set('settings', settings);
-                    modal.classList.remove('active');
-                    updateSettingsUI();
-                    updateControlVisibility();
-                    if (callback) callback();
+                    updateProgressInfo();
                 });
             }
 
@@ -3420,22 +3117,10 @@
             function launchGameWithControlCheck(launchFn) {
                 if (!settings.deviceType) {
                     showDeviceModal(() => {
-                        if (isMobileDevice && !settings.controlTypeSet) {
-                            showControlModal(() => {
-                                launchFn();
-                            });
-                        } else {
-                            launchFn();
-                        }
+                        launchFn();
                     });
                 } else {
-                    if (isMobileDevice && !settings.controlTypeSet) {
-                        showControlModal(() => {
-                            launchFn();
-                        });
-                    } else {
-                        launchFn();
-                    }
+                    launchFn();
                 }
             }
 
@@ -3476,6 +3161,7 @@
                 updatePauseUI();
                 showScreen('game-screen');
                 document.getElementById('gameCanvas').style.display = 'block';
+                updateHudScale();
                 if (isMobileDevice && showMobileControls) {
                     document.getElementById('mobile-controls').style.display = 'flex';
                 } else {
@@ -3779,15 +3465,8 @@
                             showScreen('levels-screen');
                         });
                     } else {
-                        if (isMobileDevice && !settings.controlTypeSet) {
-                            showControlModal(() => {
-                                renderLevelGrid();
-                                showScreen('levels-screen');
-                            });
-                        } else {
-                            renderLevelGrid();
-                            showScreen('levels-screen');
-                        }
+                        renderLevelGrid();
+                        showScreen('levels-screen');
                     }
                 });
             });
@@ -3798,13 +3477,7 @@
                             showScreen('endless-screen');
                         });
                     } else {
-                        if (isMobileDevice && !settings.controlTypeSet) {
-                            showControlModal(() => {
-                                showScreen('endless-screen');
-                            });
-                        } else {
-                            showScreen('endless-screen');
-                        }
+                        showScreen('endless-screen');
                     }
                 });
             });
@@ -3851,16 +3524,6 @@
                 Storage.set('settings', settings);
                 updateSettingsUI(); if (settings.bgm) { if (currentScreen === 'game-screen') bgmPlay('battle'); else bgmPlay(
                     'menu'); } else { bgmStop(); } });
-            document.getElementById('set-dpad').addEventListener('click', () => { settings.controlType = 'dpad';
-                settings.controlTypeSet = true;
-                Storage.set('settings', settings);
-                updateSettingsUI();
-                updateControlVisibility(); });
-            document.getElementById('set-joystick').addEventListener('click', () => { settings.controlType = 'joystick';
-                settings.controlTypeSet = true;
-                Storage.set('settings', settings);
-                updateSettingsUI();
-                updateControlVisibility(); });
             document.getElementById('set-ctl-size').addEventListener('input', (e) => { settings.ctlScale = Number(e.target.value) / 100;
                 Storage.set('settings', settings);
                 applyCtlSettings();
@@ -3881,7 +3544,6 @@
                 settings.deviceType = 'pc';
                 isMobileDevice = false;
                 showMobileControls = false;
-                settings.controlTypeSet = true;
                 Storage.set('settings', settings);
                 updateSettingsUI();
                 updateControlVisibility();
@@ -3893,64 +3555,13 @@
             document.getElementById('set-device-mobile').addEventListener('click', () => {
                 settings.deviceType = 'mobile';
                 isMobileDevice = true;
-                settings.controlTypeSet = false;
                 Storage.set('settings', settings);
                 updateSettingsUI();
-                showControlModal(() => {
-                    showMobileControls = true;
-                    Storage.set('showMobileControls', showMobileControls);
-                    updateProgressInfo();
-                });
+                updateControlVisibility();
+                showMobileControls = true;
+                Storage.set('showMobileControls', showMobileControls);
+                updateProgressInfo();
             });
-
-            // ---------- 摇杆 ----------
-            const joystickContainer = document.getElementById('joystick-container');
-            const joystickKnob = document.getElementById('joystick-knob');
-            let joystickPointerId = null;
-
-            function handleJoystickMove(clientX, clientY) {
-                const rect = joystickContainer.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                const maxDist = Math.max(10, rect.width / 2 - 20);
-                let dx = clientX - centerX;
-                let dy = clientY - centerY;
-                const dist = Math.hypot(dx, dy);
-                if (dist > maxDist) { dx = (dx / dist) * maxDist;
-                    dy = (dy / dist) * maxDist; }
-                joystickKnob.style.left = (50 + (dx / (rect.width / 2)) * 40) + '%';
-                joystickKnob.style.top = (50 + (dy / (rect.height / 2)) * 40) + '%';
-                if (gameInstance) { gameInstance.joystickDir = { x: dx / maxDist, y: dy / maxDist };
-                    gameInstance.joystickActive = true; }
-            }
-
-            function joystickReset() {
-                joystickPointerId = null;
-                joystickKnob.style.left = '50%';
-                joystickKnob.style.top = '50%';
-                joystickKnob.style.transform = 'translate(-50%,-50%)';
-                if (gameInstance) { gameInstance.joystickDir = { x: 0, y: 0 };
-                    gameInstance.joystickActive = false; }
-            }
-
-            joystickContainer.addEventListener('pointerdown', (e) => {
-                if (joystickPointerId !== null) return;
-                joystickPointerId = e.pointerId;
-                try { joystickContainer.setPointerCapture(e.pointerId); } catch (err) {}
-                e.preventDefault();
-                handleJoystickMove(e.clientX, e.clientY);
-            });
-            joystickContainer.addEventListener('pointermove', (e) => {
-                if (e.pointerId !== joystickPointerId) return;
-                e.preventDefault();
-                handleJoystickMove(e.clientX, e.clientY);
-            });
-            const joystickEnd = (e) => {
-                if (e.pointerId !== joystickPointerId) return;
-                joystickReset();
-            };
-            joystickContainer.addEventListener('pointerup', joystickEnd);
-            joystickContainer.addEventListener('pointercancel', joystickEnd);
 
             // ---------- 初始化 ----------
             function init() {
@@ -3974,6 +3585,7 @@
 
             window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && currentScreen !== 'menu-screen' && !
                     gameInstance) showScreen('menu-screen'); });
+            window.addEventListener('resize', updateHudScale);
             init();
             ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
             renderMenuBackground();
