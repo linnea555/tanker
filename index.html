@@ -27,6 +27,7 @@
             color: var(--text);
             overflow: hidden;
             height: 100vh;
+            height: 100dvh;
             width: 100vw;
             display: flex;
             align-items: center;
@@ -41,6 +42,7 @@
             height: 100%;
             max-width: 800px;
             max-height: 700px;
+            max-height: 100dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -72,12 +74,13 @@
             display: none;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             background: rgba(10, 10, 10, 0.95);
             z-index: 10;
             padding: 20px;
             text-align: center;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .screen.active {
             display: flex;
@@ -97,7 +100,7 @@
             border: 3px solid var(--border);
             box-shadow: 0 0 0 2px #000, inset 0 0 0 2px #000;
             padding: 24px 28px;
-            margin: 10px;
+            margin: auto 10px;
             max-width: 560px;
             width: 90%;
             border-radius: 4px;
@@ -331,14 +334,16 @@
         }
         .mobile-controls {
             display: none;
-            position: relative;
-            width: 100%;
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            width: min(100% - 12px, 780px);
             justify-content: space-between;
-            padding: 6px 10px 10px 10px;
-            z-index: 50;
+            padding: 0 14px;
+            z-index: 60;
             pointer-events: none;
-            flex-shrink: 0;
-            margin-top: 6px;
+            align-items: flex-end;
         }
         .dpad {
             display: grid;
@@ -419,8 +424,14 @@
         @media (max-width:600px) {
             .mobile-controls {
                 display: flex;
-                position: relative;
-                margin-top: 6px;
+                position: fixed;
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+                width: min(100% - 12px, 780px);
+                margin-top: 0;
+                padding: 0 14px;
+                align-items: flex-end;
             }
             .dpad-btn {
                 width: 52px;
@@ -431,6 +442,7 @@
                 width: 60px;
                 height: 60px;
                 font-size: 1.5rem;
+                margin-right: 0;
             }
             .joystick-container {
                 width: 100px;
@@ -443,18 +455,48 @@
             h1 {
                 font-size: 1.8rem;
             }
+            h2 {
+                font-size: 1.15rem;
+            }
+            .screen {
+                padding: 12px 10px;
+            }
             .panel {
-                padding: 16px;
+                padding: 14px 12px;
+                width: 100%;
             }
             .panel .watermark-corner {
                 font-size: 1.0rem;
                 top: 6px;
                 left: 8px;
             }
+            .tutorial-highlight {
+                font-size: 0.82rem;
+                padding: 9px 10px;
+                margin: 6px 0;
+            }
+            .tutorial-tab {
+                padding: 6px 10px;
+                font-size: 0.78rem;
+            }
+            .level-grid {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 6px;
+                max-width: 100%;
+            }
+            .level-card {
+                padding: 8px 2px;
+                font-size: 0.78rem;
+            }
+            .btn {
+                font-size: 0.85rem;
+                padding: 9px 14px;
+            }
             #app {
                 justify-content: center;
                 flex-direction: column;
                 max-height: 100vh;
+                max-height: 100dvh;
             }
             canvas {
                 max-height: 60vh;
@@ -519,12 +561,11 @@
         .tutorial-page.active {
             display: block;
         }
-        }
         .mobile-toggle-btn {
-            position: absolute;
-            top: 10px;
+            position: fixed;
+            top: calc(10px + env(safe-area-inset-top, 0px));
             left: 10px;
-            z-index: 80;
+            z-index: 90;
             background: rgba(0, 0, 0, 0.6);
             border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 20px;
@@ -544,10 +585,10 @@
             border-color: #4caf50;
         }
         .mobile-pause-btn {
-            position: absolute;
-            top: 10px;
+            position: fixed;
+            top: calc(10px + env(safe-area-inset-top, 0px));
             right: 10px;
-            z-index: 80;
+            z-index: 90;
             background: rgba(0, 0, 0, 0.6);
             border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 20px;
@@ -1105,6 +1146,47 @@
 
     <script>
         (function() {
+            // ╔════════════════════════════════════════════════════════════════╗
+            // ║  ☁️ 云端排行榜配置 —— 填上下面两行即可开启全球排行榜，留空=纯本地模式 ║
+            // ║  1. 打开 supabase.com 注册并新建项目（地区选 Singapore）            ║
+            // ║  2. 左侧 SQL Editor 粘贴运行《云端排行榜-安装SQL.sql》里的语句        ║
+            // ║  3. 设置→API 页复制 Project URL 和 anon public key 填到下面         ║
+            // ╚════════════════════════════════════════════════════════════════╝
+            const SUPABASE_URL = '';      // 例如 'https://abcd1234.supabase.co'
+            const SUPABASE_ANON_KEY = '';  // eyJ 开头的一长串（anon public，不是 service_role!）
+
+            // 云端排行榜网络层：失败自动回退本地，不影响游戏
+            const CloudLB = {
+                ok: false,          // 最近一次云端请求是否成功
+                tried: false,       // 是否尝试过连接
+                cache: {},          // key -> { time, rows } 短缓存，防频繁刷新
+                enabled() { return !!(SUPABASE_URL && SUPABASE_ANON_KEY); },
+                headers() { return { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }; },
+                // 提交一局成绩（只升不降，服务端保证）
+                submit(name, mode, level, score, wave) {
+                    if (!this.enabled() || !name || !(score > 0)) return;
+                    fetch(SUPABASE_URL + '/rest/v1/rpc/submit_score', {
+                        method: 'POST',
+                        headers: this.headers(),
+                        body: JSON.stringify({ p_player: name, p_mode: mode, p_level: level, p_score: score, p_wave: wave || 0 })
+                    }).then(r => { this.tried = true; this.ok = r.ok; if (!r.ok) console.warn('cloud submit failed', r.status); })
+                      .catch(() => { this.tried = true; this.ok = false; });
+                },
+                // 拉取某榜 Top 榜（10 秒内同参数直接用缓存）
+                top(mode, level, limit) {
+                    if (!this.enabled()) return Promise.resolve(null);
+                    const key = mode + ':' + level + ':' + limit;
+                    const c = this.cache[key];
+                    if (c && Date.now() - c.time < 10000) return Promise.resolve(c.rows);
+                    const q = SUPABASE_URL + '/rest/v1/scores?select=player,score,wave&mode=eq.' + mode +
+                        '&level=eq.' + level + '&score=gt.0&order=score.desc&limit=' + limit;
+                    return fetch(q, { headers: this.headers() })
+                        .then(r => { this.tried = true; this.ok = r.ok; if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+                        .then(rows => { this.cache[key] = { time: Date.now(), rows: rows || [] }; return rows || []; })
+                        .catch(() => { this.tried = true; this.ok = false; return null; });
+                }
+            };
+
             const Storage = {
                 get(key, def) { try { const v = localStorage.getItem('myh_tank_' + key); return v ? JSON.parse(v) : def; } catch (
                 e) { return def; } },
@@ -1762,39 +1844,49 @@
                 ctx.textAlign = align;
                 ctx.fillText(text, x, y); }
 
-            function drawTile(tileType, cx, cy) { const x = cx * TILE,
+            // ---------- 地图渲染缓存（离屏画布，性能关键：手机上从每帧上千次 fillRect 降到 1 次 drawImage） ----------
+            const mapCanvas = document.createElement('canvas');
+            mapCanvas.width = 480;
+            mapCanvas.height = 416;
+            const mapCtx = mapCanvas.getContext('2d');
+            let mapCacheValid = false;
+            let mapCacheRef = null;
+
+            function invalidateMapCache() { mapCacheValid = false; }
+
+            function drawTile(targetCtx, tileType, cx, cy) { const x = cx * TILE,
                     y = cy * TILE;
-                ctx.fillStyle = COLOR_TILE[tileType];
-                ctx.fillRect(x, y, TILE, TILE); if (tileType === TILE_BRICK) { ctx.fillStyle = '#8b4513';
-                    ctx.fillRect(x, y, TILE, TILE / 2);
-                    ctx.fillRect(x, y + TILE / 2, TILE / 2, TILE / 2);
-                    ctx.fillStyle = '#cd853f';
-                    ctx.fillRect(x + TILE / 2, y + TILE / 2, TILE / 2, TILE / 2); } else if (tileType === TILE_STEEL) { ctx
+                targetCtx.fillStyle = COLOR_TILE[tileType];
+                targetCtx.fillRect(x, y, TILE, TILE); if (tileType === TILE_BRICK) { targetCtx.fillStyle = '#8b4513';
+                    targetCtx.fillRect(x, y, TILE, TILE / 2);
+                    targetCtx.fillRect(x, y + TILE / 2, TILE / 2, TILE / 2);
+                    targetCtx.fillStyle = '#cd853f';
+                    targetCtx.fillRect(x + TILE / 2, y + TILE / 2, TILE / 2, TILE / 2); } else if (tileType === TILE_STEEL) { targetCtx
                         .fillStyle = '#aaa';
-                    ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
-                    ctx.fillStyle = '#666';
-                    ctx.fillRect(x + 6, y + 6, TILE - 12, TILE - 12); } else if (tileType === TILE_WATER) { ctx.fillStyle =
+                    targetCtx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+                    targetCtx.fillStyle = '#666';
+                    targetCtx.fillRect(x + 6, y + 6, TILE - 12, TILE - 12); } else if (tileType === TILE_WATER) { targetCtx.fillStyle =
                         '#4169e1';
-                    ctx.fillRect(x, y, TILE, TILE);
-                    ctx.fillStyle = '#1e90ff'; for (let i = 0; i < 3; i++) { ctx.fillRect(x + 4 + i * 8, y + 6, 4, 4);
-                        ctx.fillRect(x + 8 + i * 8, y + 18, 4, 4); } } else if (tileType === TILE_GRASS) { ctx.fillStyle =
+                    targetCtx.fillRect(x, y, TILE, TILE);
+                    targetCtx.fillStyle = '#1e90ff'; for (let i = 0; i < 3; i++) { targetCtx.fillRect(x + 4 + i * 8, y + 6, 4, 4);
+                        targetCtx.fillRect(x + 8 + i * 8, y + 18, 4, 4); } } else if (tileType === TILE_GRASS) { targetCtx.fillStyle =
                         '#2e8b57';
-                    ctx.fillRect(x, y, TILE, TILE);
-                    ctx.fillStyle = '#3cb371'; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2 ===
-                        0) ctx.fillRect(x + i * 8, y + j * 8, 8, 8); } else if (tileType === TILE_ICE) { ctx.fillStyle =
+                    targetCtx.fillRect(x, y, TILE, TILE);
+                    targetCtx.fillStyle = '#3cb371'; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2 ===
+                        0) targetCtx.fillRect(x + i * 8, y + j * 8, 8, 8); } else if (tileType === TILE_ICE) { targetCtx.fillStyle =
                         '#a0d8ef';
-                    ctx.fillRect(x, y, TILE, TILE);
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8); } else if (tileType === TILE_BASE) { ctx.fillStyle =
+                    targetCtx.fillRect(x, y, TILE, TILE);
+                    targetCtx.fillStyle = '#ffffff';
+                    targetCtx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8); } else if (tileType === TILE_BASE) { targetCtx.fillStyle =
                         '#ffd700';
-                    ctx.fillRect(x, y, TILE, TILE);
-                    ctx.fillStyle = '#b8860b';
-                    ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
-                    ctx.fillStyle = '#ff4500';
-                    ctx.fillRect(x + 12, y + 8, 8, 8); } else { ctx.fillStyle = '#1a1a1a';
-                    ctx.fillRect(x, y, TILE, TILE);
-                    ctx.strokeStyle = '#222';
-                    ctx.strokeRect(x, y, TILE, TILE); } }
+                    targetCtx.fillRect(x, y, TILE, TILE);
+                    targetCtx.fillStyle = '#b8860b';
+                    targetCtx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+                    targetCtx.fillStyle = '#ff4500';
+                    targetCtx.fillRect(x + 12, y + 8, 8, 8); } else { targetCtx.fillStyle = '#1a1a1a';
+                    targetCtx.fillRect(x, y, TILE, TILE);
+                    targetCtx.strokeStyle = '#222';
+                    targetCtx.strokeRect(x, y, TILE, TILE); } }
 
             function drawTank(x, y, dir, color, isPlayer = true, size = 28) { const half = size / 2;
                 const cx = x,
@@ -1836,8 +1928,16 @@
                     ctx.fillStyle = '#fff';
                     ctx.fillRect(x - 1, y - 1, 2, 2); } }
 
-            function drawMap(map) { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) drawTile(map[y][x], x,
-                y); }
+            function drawMap(map) {
+                if (!mapCacheValid || mapCacheRef !== map) {
+                    mapCtx.fillStyle = '#000';
+                    mapCtx.fillRect(0, 0, 480, 416);
+                    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) drawTile(mapCtx, map[y][x], x, y);
+                    mapCacheValid = true;
+                    mapCacheRef = map;
+                }
+                ctx.drawImage(mapCanvas, 0, 0);
+            }
 
             function drawHUD(game) { drawPixelText('得分: ' + game.score, 8, 20, '#f2c14e', 14, 'left');
                 drawPixelText('波次: ' + game.wave, 8, 40, '#4fc3f7', 14, 'left'); const lifeStars = '★'.repeat(game
@@ -2606,10 +2706,13 @@
                     let r = Math.random() * total;
                     for (const t of table) { r -= t[1]; if (r <= 0) return t[0]; }
                     return 'star'; }
-                spawnExplosion(x, y, intensity = 0, palette = ['#ff9800'], count = 12) { for (let i = 0; i < count; i++) { this.particles.push({ x: x, y: y, vx: (Math
+                spawnExplosion(x, y, intensity = 0, palette = ['#ff9800'], count = 12) {
+                    if (isMobileDevice) count = Math.max(4, Math.round(count * 0.5));
+                    for (let i = 0; i < count; i++) { this.particles.push({ x: x, y: y, vx: (Math
                                 .random() - 0.5) * 120, vy: (Math.random() - 0.5) * 120, life: 0.4 + Math.random() * 0.5,
                             color: palette[Math.floor(Math.random() * palette.length)],
                             size: 1 + Math.random() * 2 }); }
+                    if (this.particles.length > 160) this.particles.splice(0, this.particles.length - 160);
                     if (intensity > 0) this.shakeAmount = Math.max(this.shakeAmount, intensity); }
                 completeWave() { this.waveActive = false; const requiredWaves = (LEVEL_CONFIG[this.levelIndex] || {})
                         .waves || 5; if (this.mode === 'classic' && this.wave >= requiredWaves) { this
@@ -2644,7 +2747,8 @@
                 loseGame(reason) { if (this.gameOver) return;
                     this.gameOver = true; if (reason === 'base') { this.baseHit = true;
                         this.baseAlive = false;
-                        this.map[this.baseY][this.baseX] = TILE_EMPTY; } if (this.mode === 'endless') { if (this.score >
+                        this.map[this.baseY][this.baseX] = TILE_EMPTY;
+                        invalidateMapCache(); } if (this.mode === 'endless') { if (this.score >
                             leaderboard.endless) { leaderboard.endless = this.score;
                             Storage.set('leaderboard', leaderboard); } } else if (this.mode === 'classic') { if (!
                             leaderboard.classic[this.levelIndex] || this.score > leaderboard.classic[this
@@ -2703,10 +2807,12 @@
                         const col = Math.floor(b.x / TILE),
                             row = Math.floor(b.y / TILE); if (col >= 0 && col < COLS && row >= 0 && row < ROWS) { const
                                 tile = this.map[row][col]; if (tile === TILE_BRICK) { this.map[row][col] = TILE_EMPTY;
+                                invalidateMapCache();
                                 this.spawnExplosion(b.x, b.y, 0, ['#ff9800', '#8d6e63'], 10); if (!(b.type === 'ap' && b.pierceWall)) { this.bullets
                                         .splice(i, 1);
                                     continue; } } else if (tile === TILE_STEEL) { if (b.type === 'ap' && b.pierceSteel) {
                                     this.map[row][col] = TILE_EMPTY;
+                                    invalidateMapCache();
                                     this.spawnExplosion(b.x, b.y, 0, ['#fff176', '#ffffff'], 16); } else { this.bullets.splice(i, 1);
                                     this.spawnExplosion(b.x, b.y, 0, ['#fff176', '#ffeb3b', '#ffffff'], 12);
                                     continue; } } else if (tile === TILE_BASE) { this.bullets.splice(i, 1);
@@ -2740,6 +2846,7 @@
                         const col = Math.floor(b.x / TILE),
                             row = Math.floor(b.y / TILE); if (col >= 0 && col < COLS && row >= 0 && row < ROWS) { const
                                 tile = this.map[row][col]; if (tile === TILE_BRICK) { this.map[row][col] = TILE_EMPTY;
+                                invalidateMapCache();
                                 this.enemyBullets.splice(i, 1);
                                 this.spawnExplosion(b.x, b.y, 0, ['#ff9800', '#8d6e63'], 10); continue; } else if (tile === TILE_STEEL) {
                                 this.enemyBullets.splice(i, 1);
