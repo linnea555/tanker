@@ -799,6 +799,33 @@
             color: var(--accent);
             background: #2a2a1a;
         }
+        .lb-cloud-status {
+            margin: 0 0 10px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            text-align: center;
+            background: rgba(79, 195, 247, 0.12);
+            border: 1px solid rgba(79, 195, 247, 0.4);
+            color: #81d4fa;
+            font-family: Consolas, Menlo, monospace;
+            word-break: break-all;
+        }
+        .lb-cloud-status.on {
+            background: rgba(76, 175, 80, 0.12);
+            border-color: rgba(76, 175, 80, 0.4);
+            color: #a5d6a7;
+        }
+        .lb-cloud-status.err {
+            background: rgba(255, 82, 82, 0.12);
+            border-color: rgba(255, 82, 82, 0.45);
+            color: #ff8a80;
+        }
+        .lb-cloud-status.off {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: #555;
+            color: #aaa;
+        }
         .lb-levels {
             display: flex;
             flex-wrap: wrap;
@@ -1087,8 +1114,9 @@
                 <div class="lb-tabs">
                     <button class="lb-tab active" id="lb-tab-classic" type="button">🏰 经典模式</button>
                     <button class="lb-tab" id="lb-tab-endless" type="button">♾️ 无尽模式</button>
-                    <button class="btn small" id="btn-lb-refresh" type="button" title="手动刷新云端榜单">🔄 刷新</button>
+                    <button class="btn gold small" id="btn-lb-refresh" type="button" title="手动刷新云端榜单">🔄 刷新</button>
                 </div>
+                <div id="lb-cloud-status" class="lb-cloud-status"></div>
                 <div id="lb-classic-view">
                     <div class="lb-levels" id="lb-levels"></div>
                     <div id="lb-classic-list"></div>
@@ -1113,7 +1141,7 @@
             </div>
         </div>
 
-        <div class="watermark">MYH</div>
+        <div class="watermark">MYH · v2.0.1</div>
 
         <div class="mobile-controls" id="mobile-controls">
             <div class="dpad" id="dpad-container"><button class="dpad-btn" id="m-up">▲</button><button class="dpad-btn" id="m-left">◀</button><button class="dpad-btn" id="m-down">▼</button><button class="dpad-btn" id="m-right">▶</button></div>
@@ -1135,18 +1163,26 @@
             const CloudLB = {
                 ok: false,          // 最近一次云端请求是否成功
                 tried: false,       // 是否尝试过连接
+                lastError: '',      // 最近一次失败原因
                 cache: {},          // key -> { time, rows } 短缓存，防频繁刷新
                 enabled() { return !!(SUPABASE_URL && SUPABASE_ANON_KEY); },
                 headers() { return { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }; },
-                // 提交一局成绩（只升不降，服务端保证）
-                submit(name, mode, level, score, wave) {
+                // 提交一局成绩（只升不降，服务端保证）。优先带 player_id 的新接口，失败自动退回旧接口
+                submit(name, mode, level, score, wave, playerId) {
                     if (!this.enabled() || typeof fetch === 'undefined' || !name || !(score > 0)) return;
-                    fetch(SUPABASE_URL + '/rest/v1/rpc/submit_score', {
-                        method: 'POST',
-                        headers: this.headers(),
-                        body: JSON.stringify({ p_player: name, p_mode: mode, p_level: level, p_score: score, p_wave: wave || 0 })
-                    }).then(r => { this.tried = true; this.ok = r.ok; if (!r.ok) console.warn('cloud submit failed', r.status); })
-                      .catch(() => { this.tried = true; this.ok = false; });
+                    const url = SUPABASE_URL + '/rest/v1/rpc/submit_score';
+                    const post = (body) => fetch(url, { method: 'POST', headers: this.headers(), body: JSON.stringify(body) });
+                    const bNew = { p_player: name, p_player_id: playerId || '', p_mode: mode, p_level: level, p_score: score, p_wave: wave || 0 };
+                    const bOld = { p_player: name, p_mode: mode, p_level: level, p_score: score, p_wave: wave || 0 };
+                    post(bNew).then(r => {
+                        if (r.ok) { this.tried = true; this.ok = true; this.lastError = ''; return; }
+                        return post(bOld).then(r2 => {
+                            this.tried = true;
+                            this.ok = r2.ok;
+                            this.lastError = r2.ok ? '' : ('提交失败 HTTP ' + r2.status);
+                            if (!r2.ok) console.warn('cloud submit failed', r2.status);
+                        });
+                    }).catch(() => { this.tried = true; this.ok = false; this.lastError = '提交失败（网络）'; });
                 },
                 // 拉取某榜 Top 榜（10 秒内同参数直接用缓存；force=true 强制刷新）
                 top(mode, level, limit, force) {
@@ -1154,12 +1190,14 @@
                     const key = mode + ':' + level + ':' + limit;
                     const c = this.cache[key];
                     if (!force && c && Date.now() - c.time < 10000) return Promise.resolve(c.rows);
-                    const q = SUPABASE_URL + '/rest/v1/scores?select=player,score,wave&mode=eq.' + mode +
+                    const base = SUPABASE_URL + '/rest/v1/scores?select=player,score,wave,player_id&mode=eq.' + mode +
                         '&level=eq.' + level + '&score=gt.0&order=score.desc&limit=' + limit;
-                    return fetch(q, { headers: this.headers() })
+                    const baseOld = SUPABASE_URL + '/rest/v1/scores?select=player,score,wave&mode=eq.' + mode +
+                        '&level=eq.' + level + '&score=gt.0&order=score.desc&limit=' + limit;
+                    const grab = (q) => fetch(q, { headers: this.headers() })
                         .then(r => { this.tried = true; this.ok = r.ok; if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
-                        .then(rows => { this.cache[key] = { time: Date.now(), rows: rows || [] }; return rows || []; })
-                        .catch(() => { this.tried = true; this.ok = false; return null; });
+                        .then(rows => { this.cache[key] = { time: Date.now(), rows: rows || [] }; return rows || []; });
+                    return grab(base).catch(() => grab(baseOld)).catch(() => { this.tried = true; this.ok = false; this.lastError = '拉取失败（网络）'; return null; });
                 }
             };
 
@@ -1781,6 +1819,12 @@
             let leaderboard = Storage.get('leaderboard', { classic: {}, endless: 0 });
             if (!leaderboard.players) leaderboard.players = {};
             let playerName = Storage.get('playerName', '');
+            // 设备唯一ID：云端用 ID 认人（昵称只是显示名，改名不换身份、重名也不串人）
+            let myPlayerId = Storage.get('playerId', '');
+            if (!myPlayerId) {
+                myPlayerId = 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+                Storage.set('playerId', myPlayerId);
+            }
             let lbMode = 'classic';
             let lbLevel = 0;
             let unlockedAchievements = Storage.get('achievements', []);
@@ -3279,7 +3323,7 @@
                 p.updatedAt = Date.now();
                 Storage.set('leaderboard', leaderboard);
                 // 云端同步（只升不降，失败静默，不影响本机）
-                CloudLB.submit(playerName, g.mode, g.levelIndex || 0, g.score, g.wave || 0);
+                CloudLB.submit(playerName, g.mode, g.levelIndex || 0, g.score, g.wave || 0, myPlayerId);
                 if (currentScreen === 'leaderboard-screen') renderLeaderboard();
                 return isRecord;
             }
@@ -3342,12 +3386,12 @@
                 for (const lv in src.classic) {
                     const s = src.classic[lv] || 0;
                     if (s > (dst.classic[lv] || 0)) dst.classic[lv] = s;
-                    if (s > 0) CloudLB.submit(newName, 'classic', Number(lv), s, 0);
+                    if (s > 0) CloudLB.submit(newName, 'classic', Number(lv), s, 0, myPlayerId);
                 }
                 if (src.endless && (src.endless.score || 0) > ((dst.endless && dst.endless.score) || 0)) {
                     dst.endless = { score: src.endless.score, wave: src.endless.wave || 0 };
                 }
-                if (src.endless && src.endless.score > 0) CloudLB.submit(newName, 'endless', 0, src.endless.score, src.endless.wave || 0);
+                if (src.endless && src.endless.score > 0) CloudLB.submit(newName, 'endless', 0, src.endless.score, src.endless.wave || 0, myPlayerId);
                 dst.totalGames = (dst.totalGames || 0) + (src.totalGames || 0);
                 dst.totalKills = (dst.totalKills || 0) + (src.totalKills || 0);
                 dst.name = newName;
@@ -3402,16 +3446,22 @@
                 });
             }
 
+            // 判断一行是不是"我"：优先设备ID，老数据(无ID)退回名字匹配
+            function isMeRow(r) {
+                if (r.pid) return r.pid === myPlayerId;
+                return !!(playerName && r.name.toLowerCase() === playerName.toLowerCase());
+            }
+
             function renderLbClassic() {
                 const list = document.getElementById('lb-classic-list');
                 if (!list) return;
                 const key = String(lbLevel);
                 let all;
                 if (lbCloudRows) {
-                    all = lbCloudRows.map(r => ({ name: r.player, score: r.score || 0 })).filter(r => r.score > 0);
+                    all = lbCloudRows.map(r => ({ name: r.player, score: r.score || 0, pid: r.player_id || '' })).filter(r => r.score > 0);
                 } else {
                     all = Object.values(leaderboard.players)
-                        .map(p => ({ name: p.name, score: (p.classic && p.classic[key]) || 0 }))
+                        .map(p => ({ name: p.name, score: (p.classic && p.classic[key]) || 0, pid: '' }))
                         .filter(r => r.score > 0)
                         .sort((a, b) => b.score - a.score);
                 }
@@ -3419,7 +3469,7 @@
                 if (!all.length) {
                     html += '<div class="lb-empty">还没有人上榜，快来创造第一个纪录！🎮</div>';
                 } else {
-                    all.slice(0, 10).forEach((r, i) => { html += lbRowHtml(i + 1, r.name, r.score + ' 分', playerName && r.name.toLowerCase() === playerName.toLowerCase()); });
+                    all.slice(0, 10).forEach((r, i) => { html += lbRowHtml(i + 1, r.name, r.score + ' 分', isMeRow(r)); });
                 }
                 list.innerHTML = html;
                 if (playerName) {
@@ -3428,7 +3478,7 @@
                     const mine = document.createElement('div');
                     mine.className = 'lb-mine';
                     if (myScore > 0) {
-                        const idx = all.findIndex(r => r.name.toLowerCase() === playerName.toLowerCase());
+                        const idx = all.findIndex(r => isMeRow(r));
                         const rank = idx >= 0 ? idx + 1 : 0;
                         mine.innerHTML = `我的最佳：<span class="highlight">${myScore} 分</span>` + (rank > 0 ? ` · 第 ${rank} 名 / 共 ${all.length} 人` : ' · 暂未进入榜单');
                     } else {
@@ -3443,10 +3493,10 @@
                 if (!list) return;
                 let all;
                 if (lbCloudRows) {
-                    all = lbCloudRows.map(r => ({ name: r.player, score: r.score || 0, wave: r.wave || 0 })).filter(r => r.score > 0);
+                    all = lbCloudRows.map(r => ({ name: r.player, score: r.score || 0, wave: r.wave || 0, pid: r.player_id || '' })).filter(r => r.score > 0);
                 } else {
                     all = Object.values(leaderboard.players)
-                        .map(p => ({ name: p.name, score: (p.endless && p.endless.score) || 0, wave: (p.endless && p.endless.wave) || 0 }))
+                        .map(p => ({ name: p.name, score: (p.endless && p.endless.score) || 0, wave: (p.endless && p.endless.wave) || 0, pid: '' }))
                         .filter(r => r.score > 0)
                         .sort((a, b) => b.score - a.score);
                 }
@@ -3455,8 +3505,7 @@
                     html += '<div class="lb-empty">还没有人上榜，快来挑战无尽模式！♾️</div>';
                 } else {
                     all.slice(0, 20).forEach((r, i) => {
-                        const isMe = playerName && r.name.toLowerCase() === playerName.toLowerCase();
-                        html += lbRowHtml(i + 1, r.name, r.score + ' 分 · 波次 ' + r.wave, isMe);
+                        html += lbRowHtml(i + 1, r.name, r.score + ' 分 · 波次 ' + r.wave, isMeRow(r));
                     });
                 }
                 list.innerHTML = html;
@@ -3466,7 +3515,7 @@
                     const mine = document.createElement('div');
                     mine.className = 'lb-mine';
                     if (myScore > 0) {
-                        const idx = all.findIndex(r => r.name.toLowerCase() === playerName.toLowerCase());
+                        const idx = all.findIndex(r => isMeRow(r));
                         const rank = idx >= 0 ? idx + 1 : 0;
                         mine.innerHTML = `我的最佳：<span class="highlight">${myScore} 分</span> · 波次 ${me.endless.wave}` + (rank > 0 ? ` · 第 ${rank} 名 / 共 ${all.length} 人` : ' · 暂未进入榜单');
                     } else {
@@ -3485,6 +3534,23 @@
                 if (endlessTab) endlessTab.classList.toggle('active', lbMode === 'endless');
                 if (classicView) classicView.style.display = lbMode === 'classic' ? '' : 'none';
                 if (endlessView) endlessView.style.display = lbMode === 'endless' ? '' : 'none';
+                // 云端状态行（诊断用）
+                const st = document.getElementById('lb-cloud-status');
+                if (st) {
+                    if (!CloudLB.enabled()) {
+                        st.textContent = '📄 本机模式（页面未配置云端，请确认是最新版页面）';
+                        st.className = 'lb-cloud-status off';
+                    } else if (CloudLB.ok) {
+                        st.textContent = '☁️ 云端已连接 · 我的设备ID ' + myPlayerId.slice(0, 8) + '…';
+                        st.className = 'lb-cloud-status on';
+                    } else if (CloudLB.tried && !CloudLB.ok) {
+                        st.textContent = '⚠️ 云端连接失败（' + (CloudLB.lastError || '网络问题') + '）· 当前显示本机榜，请点🔄重试';
+                        st.className = 'lb-cloud-status err';
+                    } else {
+                        st.textContent = '☁️ 正在连接云端…';
+                        st.className = 'lb-cloud-status';
+                    }
+                }
                 if (lbMode === 'classic') { renderLbLevels(); renderLbClassic(); } else { renderLbEndless(); }
                 refreshCloudView();
             }
