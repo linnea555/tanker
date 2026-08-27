@@ -337,7 +337,7 @@
             display: none;
             position: fixed;
             left: 50%;
-            transform: translateX(-50%) scale(var(--ctl-scale, 1.2));
+            transform: translateX(calc(-50% + var(--ctl-x, 0px))) scale(var(--ctl-scale, 1.2));
             transform-origin: bottom center;
             bottom: calc(var(--ctl-bottom, 56px) + env(safe-area-inset-bottom, 0px));
             width: min(100% - 12px, 780px);
@@ -410,7 +410,7 @@
                 display: flex;
                 position: fixed;
                 left: 50%;
-                transform: translateX(-50%) scale(var(--ctl-scale, 1.2));
+                transform: translateX(calc(-50% + var(--ctl-x, 0px))) scale(var(--ctl-scale, 1.2));
                 transform-origin: bottom center;
                 bottom: calc(var(--ctl-bottom, 56px) + env(safe-area-inset-bottom, 0px));
                 width: min(100% - 12px, 780px);
@@ -607,6 +607,62 @@
         .landscape-btn.active {
             background: rgba(76, 175, 80, 0.6);
             border-color: #4caf50;
+        }
+        .pause-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 80;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            pointer-events: auto;
+        }
+        .pause-overlay.active {
+            display: flex;
+        }
+        .pause-box {
+            background: var(--panel, #1a1a1a);
+            border: 3px solid var(--border, #333);
+            border-radius: 10px;
+            padding: 26px 22px;
+            max-width: 320px;
+            width: 86%;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+        .pause-box h2 {
+            color: var(--accent, #ffd700);
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+        }
+        .pause-box p {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 18px;
+        }
+        .pause-box .modal-btns {
+            flex-direction: column;
+            gap: 10px;
+        }
+        .pause-box .btn {
+            width: 100%;
+        }
+        /* 虚拟横屏：把整个应用旋转 90° 铺满屏幕（iOS 无法锁屏时兜底） */
+        body.virtual-landscape {
+            overflow: hidden;
+        }
+        body.virtual-landscape #app {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 100vh;
+            width: 100dvh;
+            height: 100vw;
+            height: 100dvw;
+            max-width: none;
+            max-height: none;
+            transform: translate(-50%, -50%) rotate(90deg);
         }
         #ui-toast {
             position: fixed;
@@ -1051,6 +1107,16 @@
             <button id="mobile-toggle-btn" class="mobile-toggle-btn" title="切换移动端虚拟按键">📱</button>
             <button id="mobile-pause-btn" class="mobile-pause-btn" title="暂停/继续">⏸</button>
             <button id="landscape-btn" class="landscape-btn" title="横屏全屏游玩">⛶</button>
+            <div id="pause-overlay" class="pause-overlay">
+                <div class="pause-box">
+                    <h2>⏸ 已暂停</h2>
+                    <p>游戏已暂停，休息一下再战！</p>
+                    <div class="modal-btns">
+                        <button class="btn gold" id="btn-pause-resume">▶ 继续游戏</button>
+                        <button class="btn" id="btn-pause-menu">🏠 返回首页</button>
+                    </div>
+                </div>
+            </div>
         </div>
         <div id="ui-toast"></div>
 
@@ -1086,6 +1152,7 @@
                 <input id="player-name-input" maxlength="10" placeholder="输入你的昵称…" autocomplete="off" />
                 <div class="modal-btns">
                     <button class="btn gold" id="btn-player-ok">确定</button>
+                    <button class="btn" id="btn-player-cancel">取消</button>
                 </div>
             </div>
         </div>
@@ -1121,6 +1188,7 @@
                 <div class="setting-item"><span style="font-weight:bold; color:#ccc;">虚拟按键（手机）：</span>
                     <div class="setting-option ctl-custom">
                         <label class="ctl-slider"><span>大小</span><input type="range" id="set-ctl-size" min="60" max="200" step="5"><b id="ctl-size-val"></b></label>
+                        <label class="ctl-slider"><span>左右位置</span><input type="range" id="set-ctl-x" min="-160" max="160" step="4"><b id="ctl-x-val"></b></label>
                         <label class="ctl-slider"><span>离底部</span><input type="range" id="set-ctl-bottom" min="0" max="160" step="4"><b id="ctl-bottom-val"></b></label>
                         <label class="ctl-slider"><span>不透明度</span><input type="range" id="set-ctl-opacity" min="25" max="100" step="5"><b id="ctl-opacity-val"></b></label>
                     </div>
@@ -1905,11 +1973,13 @@
                 controlTypeSet: false,
                 bgm: true,
                 ctlScale: 1.2,
+                ctlX: 0,
                 ctlBottom: 56,
                 ctlOpacity: 1
             });
             settings.bgm = settings.bgm !== false;
             settings.ctlScale = settings.ctlScale == null ? 1.2 : settings.ctlScale;
+            settings.ctlX = settings.ctlX == null ? 0 : settings.ctlX;
             settings.ctlBottom = settings.ctlBottom == null ? 56 : settings.ctlBottom;
             settings.ctlOpacity = settings.ctlOpacity == null ? 1 : settings.ctlOpacity;
 
@@ -1920,6 +1990,7 @@
                 if (!document.documentElement) return;
                 const root = document.documentElement;
                 root.style.setProperty('--ctl-scale', settings.ctlScale);
+                root.style.setProperty('--ctl-x', settings.ctlX + 'px');
                 root.style.setProperty('--ctl-bottom', settings.ctlBottom + 'px');
                 root.style.setProperty('--ctl-opacity', settings.ctlOpacity);
             }
@@ -2252,7 +2323,8 @@
                     // 开火已统一为自动开火，无手动射击操作
                 }
                 togglePause() { if (this.gameOver) return;
-                    this.paused = !this.paused; }
+                    this.paused = !this.paused;
+                    updatePauseUI(); }
                 startWave() {
                     if (this.gameOver) return;
                     this.wave++;
@@ -3155,6 +3227,10 @@
             document.getElementById('mobile-pause-btn').addEventListener('click', function() {
                 if (gameInstance) gameInstance.togglePause();
             });
+            document.getElementById('btn-pause-resume').addEventListener('click', function() {
+                if (gameInstance) gameInstance.togglePause();
+            });
+            document.getElementById('btn-pause-menu').addEventListener('click', exitToMenu);
 
             // ---------- 横屏/全屏游玩 ----------
             (function() {
@@ -3180,17 +3256,22 @@
                     const el = document.documentElement;
                     try {
                         if (!landscapeOn) {
+                            let realLocked = false;
                             if (el.requestFullscreen) { try { await el.requestFullscreen(); } catch (e) {} }
                             else if (el.webkitRequestFullscreen) { try { el.webkitRequestFullscreen(); } catch (e) {} }
-                            let locked = false;
                             if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.lock) {
-                                try { await screen.orientation.lock('landscape'); locked = true; } catch (e) {}
+                                try { await screen.orientation.lock('landscape'); realLocked = true; } catch (e) {}
+                            }
+                            if (!realLocked) {
+                                // iOS/不支持锁屏：用 CSS 把画面旋转 90° 实现虚拟横屏
+                                document.body.classList.add('virtual-landscape');
                             }
                             landscapeOn = true;
                             lbBtn.classList.add('active');
                             lbBtn.textContent = '⤡';
-                            uiToast(locked ? '已进入横屏模式' : '已全屏，请把手机横过来玩');
+                            uiToast(realLocked ? '已进入横屏模式' : '画面已旋转，请把手机横过来玩');
                         } else {
+                            document.body.classList.remove('virtual-landscape');
                             if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
                                 try { screen.orientation.unlock(); } catch (e) {}
                             }
@@ -3205,12 +3286,22 @@
                     }
                 }
                 lbBtn.addEventListener('click', toggleLandscape);
-                // 退出全屏（系统手势/返回键）时同步按钮状态
-                window.addEventListener('fullscreenchange', function() {
-                    if (typeof document !== 'undefined' && !document.fullscreenElement && landscapeOn) resetBtn();
-                });
-                window.addEventListener('webkitfullscreenchange', function() {
-                    if (typeof document !== 'undefined' && !document.webkitFullscreenElement && landscapeOn) resetBtn();
+                // 退出全屏（系统手势/返回键）时同步按钮状态并去掉虚拟横屏
+                function onFullscreenExit() {
+                    if (typeof document !== 'undefined' && !document.fullscreenElement && !document.webkitFullscreenElement && landscapeOn) {
+                        document.body.classList.remove('virtual-landscape');
+                        resetBtn();
+                    }
+                }
+                window.addEventListener('fullscreenchange', onFullscreenExit);
+                window.addEventListener('webkitfullscreenchange', onFullscreenExit);
+                // 物理旋转手机时同步：真横屏就关掉 CSS 旋转，回竖屏再开回来
+                window.addEventListener('orientationchange', function() {
+                    if (!landscapeOn) return;
+                    setTimeout(function() {
+                        const isRealLandscape = window.innerWidth > window.innerHeight;
+                        document.body.classList.toggle('virtual-landscape', !isRealLandscape);
+                    }, 300);
                 });
                 // 横屏按钮跟随暂停按钮显隐（游戏内才出现）
                 if (typeof MutationObserver !== 'undefined') {
@@ -3230,9 +3321,11 @@
                 bgmBtn.classList.toggle('active', settings.bgm);
                 bgmBtn.textContent = settings.bgm ? '🔊 开' : '🔇 关';
                 document.getElementById('set-ctl-size').value = Math.round(settings.ctlScale * 100);
+                document.getElementById('set-ctl-x').value = settings.ctlX;
                 document.getElementById('set-ctl-bottom').value = settings.ctlBottom;
                 document.getElementById('set-ctl-opacity').value = Math.round(settings.ctlOpacity * 100);
                 document.getElementById('ctl-size-val').textContent = Math.round(settings.ctlScale * 100) + '%';
+                document.getElementById('ctl-x-val').textContent = settings.ctlX === 0 ? '中间' : (settings.ctlX > 0 ? '右 ' + settings.ctlX : '左 ' + (-settings.ctlX));
                 document.getElementById('ctl-bottom-val').textContent = settings.ctlBottom + 'px';
                 document.getElementById('ctl-opacity-val').textContent = Math.round(settings.ctlOpacity * 100) + '%';
             }
@@ -3346,6 +3439,24 @@
                 }
             }
 
+            // ---------- 暂停面板 & 返回首页 ----------
+            function updatePauseUI() {
+                const ov = document.getElementById('pause-overlay');
+                if (!ov) return;
+                ov.classList.toggle('active', !!gameInstance && gameInstance.paused && !gameInstance.gameOver);
+            }
+
+            function exitToMenu() {
+                if (gameInstance) { gameInstance.destroy();
+                    gameInstance = null; }
+                if (window.gameLoopId) { cancelAnimationFrame(window.gameLoopId);
+                    window.gameLoopId = null; }
+                document.getElementById('mobile-controls').style.display = 'none';
+                updatePauseUI();
+                showScreen('menu-screen');
+                updateProgressInfo();
+            }
+
             // ---------- 开始游戏 ----------
             function startGame(mode, levelIndex = 0, customMap = null) {
                 initAudio();
@@ -3362,6 +3473,7 @@
                 if (!hasBase) map[12][7] = TILE_BASE;
                 gameInstance = new TankGame(map, mode, levelIndex);
                 updateControlVisibility();
+                updatePauseUI();
                 showScreen('game-screen');
                 document.getElementById('gameCanvas').style.display = 'block';
                 if (isMobileDevice && showMobileControls) {
@@ -3489,14 +3601,14 @@
                 if (el) el.textContent = playerName ? '👤 ' + playerName + ' · 点击改名' : '👤 点击设置昵称';
             }
 
-            function ensurePlayerName(cb) {
-                if (playerName) { if (cb) cb(); return; }
+            function openPlayerModal(cb) {
                 const modal = document.getElementById('player-modal');
                 const input = document.getElementById('player-name-input');
                 const okBtn = document.getElementById('btn-player-ok');
+                const cancelBtn = document.getElementById('btn-player-cancel');
                 if (!modal || !input || !okBtn) { if (cb) cb(); return; }
                 modal.classList.add('active');
-                input.value = '';
+                input.value = playerName || '';
                 const finish = () => {
                     const v = input.value.trim().slice(0, 10);
                     if (!v) { input.focus(); return; }
@@ -3506,11 +3618,22 @@
                     updatePlayerBadge();
                     if (cb) cb();
                 };
+                const close = () => modal.classList.remove('active');
                 const newOk = okBtn.cloneNode(true);
                 okBtn.replaceWith(newOk);
                 newOk.addEventListener('click', finish);
-                input.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); finish(); } };
-                setTimeout(() => input.focus(), 50);
+                if (cancelBtn) {
+                    const newCancel = cancelBtn.cloneNode(true);
+                    cancelBtn.replaceWith(newCancel);
+                    newCancel.addEventListener('click', close);
+                }
+                input.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); finish(); } else if (e.key === 'Escape') { close(); } };
+                setTimeout(() => { input.focus(); input.select(); }, 50);
+            }
+
+            function ensurePlayerName(cb) {
+                if (playerName) { if (cb) cb(); return; }
+                openPlayerModal(cb);
             }
 
             // ---------- 排行榜渲染 ----------
@@ -3706,7 +3829,7 @@
                 updateProgressInfo(); });
             document.getElementById('btn-gameover-lb').addEventListener('click', () => { renderLeaderboard();
                 showScreen('leaderboard-screen'); });
-            document.getElementById('player-badge').addEventListener('click', () => { ensurePlayerName(() => {
+            document.getElementById('player-badge').addEventListener('click', () => { openPlayerModal(() => {
                     updatePlayerBadge();
                 }); });
             document.getElementById('lb-tab-classic').addEventListener('click', () => { lbMode = 'classic';
@@ -3739,6 +3862,10 @@
                 updateSettingsUI();
                 updateControlVisibility(); });
             document.getElementById('set-ctl-size').addEventListener('input', (e) => { settings.ctlScale = Number(e.target.value) / 100;
+                Storage.set('settings', settings);
+                applyCtlSettings();
+                updateSettingsUI(); });
+            document.getElementById('set-ctl-x').addEventListener('input', (e) => { settings.ctlX = Number(e.target.value);
                 Storage.set('settings', settings);
                 applyCtlSettings();
                 updateSettingsUI(); });
@@ -3779,31 +3906,51 @@
             // ---------- 摇杆 ----------
             const joystickContainer = document.getElementById('joystick-container');
             const joystickKnob = document.getElementById('joystick-knob');
-            let joystickTouchId = null;
-            joystickContainer.addEventListener('touchstart', (e) => { e.preventDefault(); if (joystickTouchId === null) {
-                    joystickTouchId = e.changedTouches[0].identifier;
-                    handleJoystickMove(e.touches[0]); } });
-            joystickContainer.addEventListener('touchmove', (e) => { e.preventDefault(); for (let i = 0; i < e.touches
-                    .length; i++) { if (e.touches[i].identifier === joystickTouchId) { handleJoystickMove(e.touches[
-                        i]); break; } } });
-            joystickContainer.addEventListener('touchend', (e) => { for (let i = 0; i < e.changedTouches.length; i++) { if (
-                        e.changedTouches[i].identifier === joystickTouchId) { joystickTouchId = null;
-                        joystickKnob.style.transform = 'translate(-50%,-50%)'; if (gameInstance) { gameInstance
-                                .joystickDir = { x: 0, y: 0 };
-                            gameInstance.joystickActive = false; } break; } } });
+            let joystickPointerId = null;
 
-            function handleJoystickMove(touch) { const rect = joystickContainer.getBoundingClientRect();
+            function handleJoystickMove(clientX, clientY) {
+                const rect = joystickContainer.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2;
                 const centerY = rect.top + rect.height / 2;
-                const maxDist = rect.width / 2 - 20;
-                let dx = touch.clientX - centerX;
-                let dy = touch.clientY - centerY;
-                const dist = Math.hypot(dx, dy); if (dist > maxDist) { dx = (dx / dist) * maxDist;
+                const maxDist = Math.max(10, rect.width / 2 - 20);
+                let dx = clientX - centerX;
+                let dy = clientY - centerY;
+                const dist = Math.hypot(dx, dy);
+                if (dist > maxDist) { dx = (dx / dist) * maxDist;
                     dy = (dy / dist) * maxDist; }
                 joystickKnob.style.left = (50 + (dx / (rect.width / 2)) * 40) + '%';
-                joystickKnob.style.top = (50 + (dy / (rect.height / 2)) * 40) + '%'; if (gameInstance) { gameInstance
-                        .joystickDir = { x: dx / maxDist, y: dy / maxDist };
-                    gameInstance.joystickActive = true; } }
+                joystickKnob.style.top = (50 + (dy / (rect.height / 2)) * 40) + '%';
+                if (gameInstance) { gameInstance.joystickDir = { x: dx / maxDist, y: dy / maxDist };
+                    gameInstance.joystickActive = true; }
+            }
+
+            function joystickReset() {
+                joystickPointerId = null;
+                joystickKnob.style.left = '50%';
+                joystickKnob.style.top = '50%';
+                joystickKnob.style.transform = 'translate(-50%,-50%)';
+                if (gameInstance) { gameInstance.joystickDir = { x: 0, y: 0 };
+                    gameInstance.joystickActive = false; }
+            }
+
+            joystickContainer.addEventListener('pointerdown', (e) => {
+                if (joystickPointerId !== null) return;
+                joystickPointerId = e.pointerId;
+                try { joystickContainer.setPointerCapture(e.pointerId); } catch (err) {}
+                e.preventDefault();
+                handleJoystickMove(e.clientX, e.clientY);
+            });
+            joystickContainer.addEventListener('pointermove', (e) => {
+                if (e.pointerId !== joystickPointerId) return;
+                e.preventDefault();
+                handleJoystickMove(e.clientX, e.clientY);
+            });
+            const joystickEnd = (e) => {
+                if (e.pointerId !== joystickPointerId) return;
+                joystickReset();
+            };
+            joystickContainer.addEventListener('pointerup', joystickEnd);
+            joystickContainer.addEventListener('pointercancel', joystickEnd);
 
             // ---------- 初始化 ----------
             function init() {
