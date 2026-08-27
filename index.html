@@ -89,6 +89,7 @@
             background: #000;
             padding: 0;
             overflow: hidden;
+            justify-content: center;
         }
         #game-screen canvas {
             max-width: 100%;
@@ -336,14 +337,16 @@
             display: none;
             position: fixed;
             left: 50%;
-            transform: translateX(-50%);
-            bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            transform: translateX(-50%) scale(var(--ctl-scale, 1.2));
+            transform-origin: bottom center;
+            bottom: calc(var(--ctl-bottom, 56px) + env(safe-area-inset-bottom, 0px));
             width: min(100% - 12px, 780px);
-            justify-content: space-between;
+            justify-content: center;
             padding: 0 14px;
             z-index: 60;
             pointer-events: none;
             align-items: flex-end;
+            opacity: var(--ctl-opacity, 1);
         }
         .dpad {
             display: grid;
@@ -380,25 +383,6 @@
         .dpad-btn#m-right {
             grid-area: right;
         }
-        .fire-btn {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: rgba(255, 100, 100, 0.25);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            color: #fff;
-            font-size: 1.8rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: auto;
-            touch-action: none;
-            cursor: pointer;
-            margin-right: 6px;
-        }
-        .fire-btn:active {
-            background: rgba(255, 100, 100, 0.5);
-        }
         .joystick-container {
             width: 120px;
             height: 120px;
@@ -426,8 +410,9 @@
                 display: flex;
                 position: fixed;
                 left: 50%;
-                transform: translateX(-50%);
-                bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+                transform: translateX(-50%) scale(var(--ctl-scale, 1.2));
+                transform-origin: bottom center;
+                bottom: calc(var(--ctl-bottom, 56px) + env(safe-area-inset-bottom, 0px));
                 width: min(100% - 12px, 780px);
                 margin-top: 0;
                 padding: 0 14px;
@@ -437,12 +422,6 @@
                 width: 52px;
                 height: 52px;
                 font-size: 1.2rem;
-            }
-            .fire-btn {
-                width: 60px;
-                height: 60px;
-                font-size: 1.5rem;
-                margin-right: 0;
             }
             .joystick-container {
                 width: 100px;
@@ -606,6 +585,85 @@
         .mobile-pause-btn:active {
             background: rgba(76, 175, 80, 0.6);
         }
+        .landscape-btn {
+            position: fixed;
+            top: calc(10px + env(safe-area-inset-top, 0px));
+            right: 60px;
+            z-index: 90;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            width: 40px;
+            height: 40px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #fff;
+            pointer-events: auto;
+            transition: background 0.2s;
+        }
+        .landscape-btn.active {
+            background: rgba(76, 175, 80, 0.6);
+            border-color: #4caf50;
+        }
+        #ui-toast {
+            position: fixed;
+            top: calc(16px + env(safe-area-inset-top, 0px));
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: #ffd700;
+            border: 2px solid rgba(255, 215, 0, 0.6);
+            border-radius: 8px;
+            padding: 8px 18px;
+            font-size: 0.95rem;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+            white-space: nowrap;
+            max-width: 92vw;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #ui-toast.show {
+            opacity: 1;
+        }
+        /* 手机竖屏：画布避开顶部按钮行与底部虚拟键 */
+        @media (max-width:600px) and (orientation:portrait) {
+            #game-screen {
+                padding-top: 58px;
+                padding-bottom: 185px;
+            }
+        }
+        /* 手机横屏：画布尽量占满，虚拟键收进两侧角落 */
+        @media (max-height:520px) and (orientation:landscape) {
+            #game-screen {
+                padding: 4px;
+            }
+            #game-screen canvas {
+                max-height: calc(100% - 4px);
+            }
+            .mobile-controls {
+                bottom: calc(var(--ctl-bottom, 10px) + env(safe-area-inset-bottom, 0px));
+                padding: 0 6px;
+            }
+            .dpad-btn {
+                width: 46px;
+                height: 46px;
+                font-size: 1.1rem;
+            }
+            .joystick-container {
+                width: 92px;
+                height: 92px;
+            }
+            .joystick-knob {
+                width: 36px;
+                height: 36px;
+            }
+        }
         .setting-item {
             display: flex;
             flex-direction: column;
@@ -633,6 +691,34 @@
             border-color: var(--accent);
             color: var(--accent);
             background: #3a3a1a;
+        }
+        .ctl-custom {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            width: 100%;
+        }
+        .ctl-slider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: #ccc;
+        }
+        .ctl-slider span {
+            min-width: 56px;
+            flex-shrink: 0;
+        }
+        .ctl-slider input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent, #ffd700);
+            min-width: 0;
+        }
+        .ctl-slider b {
+            min-width: 38px;
+            text-align: right;
+            color: var(--accent, #ffd700);
+            font-size: 0.85rem;
         }
 
         /* 设备选择模态框 */
@@ -964,7 +1050,9 @@
             <canvas id="gameCanvas" width="480" height="416"></canvas>
             <button id="mobile-toggle-btn" class="mobile-toggle-btn" title="切换移动端虚拟按键">📱</button>
             <button id="mobile-pause-btn" class="mobile-pause-btn" title="暂停/继续">⏸</button>
+            <button id="landscape-btn" class="landscape-btn" title="横屏全屏游玩">⛶</button>
         </div>
+        <div id="ui-toast"></div>
 
         <!-- 设备类型选择模态框 -->
         <div class="device-modal" id="device-modal">
@@ -1030,8 +1118,12 @@
                 <div class="setting-item"><span style="font-weight:bold; color:#ccc;">移动方式：</span>
                     <div class="setting-option"><button class="setting-btn" id="set-dpad">十字键</button><button class="setting-btn" id="set-joystick">摇杆</button></div>
                 </div>
-                <div class="setting-item"><span style="font-weight:bold; color:#ccc;">开火方式：</span>
-                    <div class="setting-option"><button class="setting-btn" id="set-auto-fire">自动开火</button><button class="setting-btn" id="set-manual-fire">手动开火</button></div>
+                <div class="setting-item"><span style="font-weight:bold; color:#ccc;">虚拟按键（手机）：</span>
+                    <div class="setting-option ctl-custom">
+                        <label class="ctl-slider"><span>大小</span><input type="range" id="set-ctl-size" min="60" max="200" step="5"><b id="ctl-size-val"></b></label>
+                        <label class="ctl-slider"><span>离底部</span><input type="range" id="set-ctl-bottom" min="0" max="160" step="4"><b id="ctl-bottom-val"></b></label>
+                        <label class="ctl-slider"><span>不透明度</span><input type="range" id="set-ctl-opacity" min="25" max="100" step="5"><b id="ctl-opacity-val"></b></label>
+                    </div>
                 </div>
                 <div class="setting-item"><span style="font-weight:bold; color:#ccc;">设备类型：</span>
                     <div class="setting-option"><button class="setting-btn" id="set-device-pc">💻 电脑</button><button class="setting-btn" id="set-device-mobile">📱 手机</button></div>
@@ -1053,7 +1145,7 @@
                     <button class="tutorial-tab" data-tab="tab-tips" type="button">💡 技巧</button>
                 </div>
                 <div class="tutorial-page active" id="tab-basic">
-                    <div class="tutorial-highlight"><strong>操作方式：</strong><br>🖥️ 桌面端：WASD / 方向键移动，空格键射击，P键暂停<br>📱 移动端：屏幕下方摇杆移动，开火按钮射击</div>
+                    <div class="tutorial-highlight"><strong>操作方式：</strong><br>🖥️ 桌面端：WASD / 方向键移动，空格键射击，P键暂停<br>📱 移动端：摇杆移动，自动开火（大小/位置/透明度可在设置中调节）</div>
                     <div class="tutorial-highlight"><strong>游戏目标：</strong><br>🛡️ 保护下方的 <span style="color:#ffd700;">金色基地</span>，消灭所有敌方坦克过关<br>⭐ 击杀敌人会掉落道具，拾取可强化火力、护盾、生命</div>
                     <div class="tutorial-highlight" style="border-color:#ff3333; background:rgba(255,0,0,0.1);"><span class="red-warning">⚠️ 基地 3 格耐久：被打受损会触发警报，耐久耗尽游戏结束；铁铲可修复 1 格</span></div>
                 </div>
@@ -1140,7 +1232,6 @@
         <div class="mobile-controls" id="mobile-controls">
             <div class="dpad" id="dpad-container"><button class="dpad-btn" id="m-up">▲</button><button class="dpad-btn" id="m-left">◀</button><button class="dpad-btn" id="m-down">▼</button><button class="dpad-btn" id="m-right">▶</button></div>
             <div class="joystick-container hidden" id="joystick-container"><div class="joystick-knob" id="joystick-knob"></div></div>
-            <button class="fire-btn" id="m-fire">🔥</button>
         </div>
     </div>
 
@@ -1810,15 +1901,29 @@
             let unlockedAchievements = Storage.get('achievements', []);
             let settings = Storage.get('settings', {
                 controlType: 'dpad',
-                fireMode: 'auto',
                 deviceType: null,
                 controlTypeSet: false,
-                bgm: true
+                bgm: true,
+                ctlScale: 1.2,
+                ctlBottom: 56,
+                ctlOpacity: 1
             });
             settings.bgm = settings.bgm !== false;
+            settings.ctlScale = settings.ctlScale == null ? 1.2 : settings.ctlScale;
+            settings.ctlBottom = settings.ctlBottom == null ? 56 : settings.ctlBottom;
+            settings.ctlOpacity = settings.ctlOpacity == null ? 1 : settings.ctlOpacity;
 
             let isMobileDevice = false;
             let showMobileControls = false;
+
+            function applyCtlSettings() {
+                if (!document.documentElement) return;
+                const root = document.documentElement;
+                root.style.setProperty('--ctl-scale', settings.ctlScale);
+                root.style.setProperty('--ctl-bottom', settings.ctlBottom + 'px');
+                root.style.setProperty('--ctl-opacity', settings.ctlOpacity);
+            }
+            applyCtlSettings();
 
             function initDeviceState() {
                 if (settings.deviceType === 'pc') {
@@ -2104,10 +2209,9 @@
                     };
                     this.keys = {};
                     this.mobileDir = null;
-                    this.mobileFire = false;
                     this.joystickDir = { x: 0, y: 0 };
                     this.joystickActive = false;
-                    this.autoFire = (settings.fireMode === 'auto');
+                    this.autoFire = true;
                     this.shakeAmount = 0;
                     this.particles = [];
                     this.lifeLost = false;
@@ -2145,8 +2249,7 @@
                     bindDir('m-down', DIR_DOWN);
                     bindDir('m-left', DIR_LEFT);
                     bindDir('m-right', DIR_RIGHT);
-                    document.getElementById('m-fire').addEventListener('touchstart', () => this.mobileFire = true, sig);
-                    document.getElementById('m-fire').addEventListener('touchend', () => this.mobileFire = false, sig);
+                    // 开火已统一为自动开火，无手动射击操作
                 }
                 togglePause() { if (this.gameOver) return;
                     this.paused = !this.paused; }
@@ -2584,7 +2687,7 @@
                             this.player.x = newX;
                             this.player.y = newY; } }
                     this.player.cooldown -= dt;
-                    const wantFire = this.keys[' '] || this.mobileFire || this.autoFire;
+                    const wantFire = this.keys[' '] || this.autoFire;
                     if (wantFire && this.player.cooldown <= 0) { this.player.cooldown = this.fireWeapon() || 0.45; }
                     for (let i = this.powerups.length - 1; i >= 0; i--) { const p = this.powerups[i]; const dist = Math
                             .hypot(p.x - this.player.x, p.y - this.player.y); if (dist < 20) { this.applyPowerup(p
@@ -3053,16 +3156,85 @@
                 if (gameInstance) gameInstance.togglePause();
             });
 
+            // ---------- 横屏/全屏游玩 ----------
+            (function() {
+                const lbBtn = document.getElementById('landscape-btn');
+                const pauseBtn = document.getElementById('mobile-pause-btn');
+                if (!lbBtn || !pauseBtn) return;
+                let landscapeOn = false;
+                let toastTimer = null;
+                function uiToast(msg) {
+                    const t = document.getElementById('ui-toast');
+                    if (!t) return;
+                    t.textContent = msg;
+                    t.classList.add('show');
+                    clearTimeout(toastTimer);
+                    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+                }
+                function resetBtn() {
+                    landscapeOn = false;
+                    lbBtn.classList.remove('active');
+                    lbBtn.textContent = '⛶';
+                }
+                async function toggleLandscape() {
+                    const el = document.documentElement;
+                    try {
+                        if (!landscapeOn) {
+                            if (el.requestFullscreen) { try { await el.requestFullscreen(); } catch (e) {} }
+                            else if (el.webkitRequestFullscreen) { try { el.webkitRequestFullscreen(); } catch (e) {} }
+                            let locked = false;
+                            if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.lock) {
+                                try { await screen.orientation.lock('landscape'); locked = true; } catch (e) {}
+                            }
+                            landscapeOn = true;
+                            lbBtn.classList.add('active');
+                            lbBtn.textContent = '⤡';
+                            uiToast(locked ? '已进入横屏模式' : '已全屏，请把手机横过来玩');
+                        } else {
+                            if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
+                                try { screen.orientation.unlock(); } catch (e) {}
+                            }
+                            if (document.fullscreenElement && document.exitFullscreen) { try { await document.exitFullscreen(); } catch (e) {} }
+                            else if (document.webkitFullscreenElement && document.webkitExitFullscreen) { try { document.webkitExitFullscreen(); } catch (e) {} }
+                            resetBtn();
+                            uiToast('已退出横屏模式');
+                        }
+                    } catch (e) {
+                        resetBtn();
+                        uiToast('切换失败，请手动旋转手机');
+                    }
+                }
+                lbBtn.addEventListener('click', toggleLandscape);
+                // 退出全屏（系统手势/返回键）时同步按钮状态
+                window.addEventListener('fullscreenchange', function() {
+                    if (typeof document !== 'undefined' && !document.fullscreenElement && landscapeOn) resetBtn();
+                });
+                window.addEventListener('webkitfullscreenchange', function() {
+                    if (typeof document !== 'undefined' && !document.webkitFullscreenElement && landscapeOn) resetBtn();
+                });
+                // 横屏按钮跟随暂停按钮显隐（游戏内才出现）
+                if (typeof MutationObserver !== 'undefined') {
+                    new MutationObserver(function() {
+                        lbBtn.style.display = pauseBtn.style.display;
+                    }).observe(pauseBtn, { attributes: true, attributeFilter: ['style'] });
+                }
+                lbBtn.style.display = pauseBtn.style.display;
+            })();
+
             function updateSettingsUI() {
                 document.getElementById('set-dpad').classList.toggle('active', settings.controlType === 'dpad');
                 document.getElementById('set-joystick').classList.toggle('active', settings.controlType === 'joystick');
-                document.getElementById('set-auto-fire').classList.toggle('active', settings.fireMode === 'auto');
-                document.getElementById('set-manual-fire').classList.toggle('active', settings.fireMode === 'manual');
                 document.getElementById('set-device-pc').classList.toggle('active', settings.deviceType === 'pc');
                 document.getElementById('set-device-mobile').classList.toggle('active', settings.deviceType === 'mobile');
                 const bgmBtn = document.getElementById('set-bgm');
                 bgmBtn.classList.toggle('active', settings.bgm);
                 bgmBtn.textContent = settings.bgm ? '🔊 开' : '🔇 关';
+                document.getElementById('set-ctl-size').value = Math.round(settings.ctlScale * 100);
+                document.getElementById('set-ctl-bottom').value = settings.ctlBottom;
+                document.getElementById('set-ctl-opacity').value = Math.round(settings.ctlOpacity * 100);
+                document.getElementById('ctl-size-val').textContent = Math.round(settings.ctlScale * 100) + '%';
+                document.getElementById('ctl-bottom-val').textContent = settings.ctlBottom + 'px';
+                document.getElementById('ctl-opacity-val').textContent = Math.round(settings.ctlOpacity * 100) + '%';
             }
 
             function updateControlVisibility() {
@@ -3566,11 +3738,17 @@
                 Storage.set('settings', settings);
                 updateSettingsUI();
                 updateControlVisibility(); });
-            document.getElementById('set-auto-fire').addEventListener('click', () => { settings.fireMode = 'auto';
+            document.getElementById('set-ctl-size').addEventListener('input', (e) => { settings.ctlScale = Number(e.target.value) / 100;
                 Storage.set('settings', settings);
+                applyCtlSettings();
                 updateSettingsUI(); });
-            document.getElementById('set-manual-fire').addEventListener('click', () => { settings.fireMode = 'manual';
+            document.getElementById('set-ctl-bottom').addEventListener('input', (e) => { settings.ctlBottom = Number(e.target.value);
                 Storage.set('settings', settings);
+                applyCtlSettings();
+                updateSettingsUI(); });
+            document.getElementById('set-ctl-opacity').addEventListener('input', (e) => { settings.ctlOpacity = Number(e.target.value) / 100;
+                Storage.set('settings', settings);
+                applyCtlSettings();
                 updateSettingsUI(); });
             document.getElementById('set-device-pc').addEventListener('click', () => {
                 settings.deviceType = 'pc';
