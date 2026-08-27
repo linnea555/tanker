@@ -1087,6 +1087,7 @@
                 <div class="lb-tabs">
                     <button class="lb-tab active" id="lb-tab-classic" type="button">🏰 经典模式</button>
                     <button class="lb-tab" id="lb-tab-endless" type="button">♾️ 无尽模式</button>
+                    <button class="btn small" id="btn-lb-refresh" type="button" title="手动刷新云端榜单">🔄 刷新</button>
                 </div>
                 <div id="lb-classic-view">
                     <div class="lb-levels" id="lb-levels"></div>
@@ -1147,12 +1148,12 @@
                     }).then(r => { this.tried = true; this.ok = r.ok; if (!r.ok) console.warn('cloud submit failed', r.status); })
                       .catch(() => { this.tried = true; this.ok = false; });
                 },
-                // 拉取某榜 Top 榜（10 秒内同参数直接用缓存）
-                top(mode, level, limit) {
+                // 拉取某榜 Top 榜（10 秒内同参数直接用缓存；force=true 强制刷新）
+                top(mode, level, limit, force) {
                     if (!this.enabled() || typeof fetch === 'undefined') return Promise.resolve(null);
                     const key = mode + ':' + level + ':' + limit;
                     const c = this.cache[key];
-                    if (c && Date.now() - c.time < 10000) return Promise.resolve(c.rows);
+                    if (!force && c && Date.now() - c.time < 10000) return Promise.resolve(c.rows);
                     const q = SUPABASE_URL + '/rest/v1/scores?select=player,score,wave&mode=eq.' + mode +
                         '&level=eq.' + level + '&score=gt.0&order=score.desc&limit=' + limit;
                     return fetch(q, { headers: this.headers() })
@@ -3300,10 +3301,15 @@
                 const finish = () => {
                     const v = input.value.trim().slice(0, 10);
                     if (!v) { input.focus(); return; }
+                    // 改名时把旧名字的成绩迁移到新名字（本地 + 云端），避免变成两个用户
+                    if (playerName && playerName.toLowerCase() !== v.toLowerCase()) {
+                        renamePlayer(playerName, v);
+                    }
                     playerName = v;
                     Storage.set('playerName', playerName);
                     modal.classList.remove('active');
                     updatePlayerBadge();
+                    if (currentScreen === 'leaderboard-screen') renderLeaderboard();
                     if (cb) cb();
                 };
                 const close = () => modal.classList.remove('active');
@@ -3322,6 +3328,32 @@
             function ensurePlayerName(cb) {
                 if (playerName) { if (cb) cb(); return; }
                 openPlayerModal(cb);
+            }
+
+            // 改名迁移：把 oldName 的最佳成绩并入 newName（本地去重 + 云端以新名字重发），旧身份删除
+            function renamePlayer(oldName, newName) {
+                const ok = oldName.toLowerCase();
+                const nk = newName.toLowerCase();
+                if (ok === nk) return;
+                const src = leaderboard.players[ok];
+                if (!src) return;
+                let dst = leaderboard.players[nk];
+                if (!dst) dst = leaderboard.players[nk] = { name: newName, classic: {}, endless: null, totalGames: 0, totalKills: 0 };
+                for (const lv in src.classic) {
+                    const s = src.classic[lv] || 0;
+                    if (s > (dst.classic[lv] || 0)) dst.classic[lv] = s;
+                    if (s > 0) CloudLB.submit(newName, 'classic', Number(lv), s, 0);
+                }
+                if (src.endless && (src.endless.score || 0) > ((dst.endless && dst.endless.score) || 0)) {
+                    dst.endless = { score: src.endless.score, wave: src.endless.wave || 0 };
+                }
+                if (src.endless && src.endless.score > 0) CloudLB.submit(newName, 'endless', 0, src.endless.score, src.endless.wave || 0);
+                dst.totalGames = (dst.totalGames || 0) + (src.totalGames || 0);
+                dst.totalKills = (dst.totalKills || 0) + (src.totalKills || 0);
+                dst.name = newName;
+                dst.updatedAt = Date.now();
+                delete leaderboard.players[ok];
+                Storage.set('leaderboard', leaderboard);
             }
 
             // ---------- 排行榜渲染 ----------
@@ -3549,6 +3581,11 @@
                 renderLeaderboard(); });
             document.getElementById('lb-tab-endless').addEventListener('click', () => { lbMode = 'endless';
                 renderLeaderboard(); });
+            document.getElementById('btn-lb-refresh').addEventListener('click', () => {
+                CloudLB.cache = {};
+                lbCloudRows = null;
+                if (currentScreen === 'leaderboard-screen') renderLeaderboard();
+            });
             // 跨标签页/窗口实时同步排行榜（同一浏览器多开时）
             window.addEventListener('storage', (e) => {
                 if (e.key === 'myh_tank_leaderboard') {
