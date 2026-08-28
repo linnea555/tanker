@@ -2661,7 +2661,7 @@
                                 damage: 1, type: 'shotgun', aoe: [24, 32, 40][this.playerPower - 1] }); }
                         sfxShotgun();                         } else if (w === 'ap') { const power = this.playerPower;
                         this.bullets.push({ x: px, y: py, dir: dir, speed: 380, damage: power, type: 'ap', pierceLeft: power >=
-                                3 ? 99 : power >= 2 ? 2 : 1, pierceWall: power >= 2, pierceSteel: power >= 3 });
+                                3 ? 99 : power >= 2 ? 2 : 1, pierceWall: power >= 2, pierceSteel: power >= 3, pierced: [] });
                         sfxAP(); } else if (w === 'homing') { const n = this.playerPower;
                         const radius = [36, 40, 48][this.playerPower - 1] || 40;
                         const halfSpread = 20 * Math.PI / 180;
@@ -2671,7 +2671,7 @@
                                 damage: 1, type: 'homing', aoe: radius, turnRate: 4.2 }); }
                         sfxHoming(); return 0.7;                     } else if (w === 'freeze') { const dur = [0.9, 1.2, 1.8][this.playerPower - 1] ||
                         1.2;
-                        const fzRadius = [36, 44, 52][this.playerPower - 1] || 44;
+                        const fzRadius = [52, 64, 76][this.playerPower - 1] || 64;
                         this.bullets.push({ x: px, y: py, dir: dir, speed: 320, damage: 1, type: 'freeze', freeze: dur,
                             freezeRadius: fzRadius });
                         sfxFreeze(); } }
@@ -2680,8 +2680,9 @@
                             gameStats.totalWeaponLevelUps++; } else { this.score += 200;
                             this.floatTexts.push({ text: '+200', x: this.player.x, y: this.player.y - 16, life: 0.8,
                                 color: '#ffd700', big: false }); } break; case 'grenade':
-                        this.enemiesAlive.forEach(e => { e.health -= 3; if (e.health <= 0) this.killEnemy(e); });
-                        break; case 'tank':
+                        for (const e of [...this.enemiesAlive]) { e.health -= 3; if (e.health <= 0) this.killEnemy(e); else this.spawnExplosion(e.x, e.y, 1, ['#ff9800', '#ff5722'], 12); }
+                        this.floatTexts.push({ text: '手雷!', x: CANVAS_W / 2, y: CANVAS_H / 2 - 40, life: 1.1, color: '#ff9800', big: true });
+                        sfxHit(); break; case 'tank':
                         this.playerLives = Math.min(9, this.playerLives + 1);                         break; case 'shovel':
                         if (this.baseHp < 3) {
                             this.baseHp++;
@@ -2860,15 +2861,17 @@
                                     continue; } } else if (tile === TILE_BASE) { this.bullets.splice(i, 1);
                             continue; } } let hit = false,
                             removeBullet = false; for (let j = this.enemiesAlive.length - 1; j >= 0; j--) { const e = this
-                                .enemiesAlive[j]; if (Math.hypot(e.x - b.x, e.y - b.y) < 16) { hit = true; if (b.type ===
+                                .enemiesAlive[j]; if (Math.hypot(e.x - b.x, e.y - b.y) < 16) {
+                                if (b.type === 'ap' && b.pierced && b.pierced.indexOf(e) > -1) continue;
+                                hit = true; if (b.type ===
                                     'freeze') { for (const e2 of [...this.enemiesAlive]) { if (Math.hypot(e2.x - b.x, e2.y -
                                             b.y) < b.freezeRadius) { e2.health -= b
                                             .damage; if (e2
                                             .health <= 0) this.killEnemy(e2); else if (e2.frozen <= 0) { e2.frozen = b.freeze * (e2
                                                 .isBoss ? 0.5 : 1);
                                             e2.dotTimer = 0.5; }
-                                        gameStats.totalFrozen = (gameStats.totalFrozen || 0) + 1; } }
-                                    this.spawnExplosion(b.x, b.y, 0, ['#81d4fa', '#e1f5fe'], 14);
+                                        gameStats.totalFrozen = (gameStats.totalFrozen || 0) + 1; this.spawnExplosion(e2.x, e2.y, 0, ['#81d4fa', '#e1f5fe', '#4fc3f7'], 8); } }
+                                    this.spawnExplosion(b.x, b.y, 0, ['#81d4fa', '#e1f5fe', '#4fc3f7'], 18);
                                     removeBullet = true;                             } else if (b.aoe) { for (const e2 of [...this.enemiesAlive]) { if (
                                     Math.hypot(e2.x - b.x, e2.y - b.y) < b.aoe) { e2.health -= (e2.frozen > 0 ? b
                                         .damage * 2 : b.damage); if (e2
@@ -2877,6 +2880,7 @@
                                 removeBullet = true; } else { e.health -= (e.frozen > 0 ? b.damage * 2 : b.damage); if (
                                         e.health <= 0) this
                                         .killEnemy(e); else this.spawnExplosion(b.x, b.y, 0, ['#ff9800', '#ff7043'], 8); if (b.type === 'ap') { b
+                                            .pierced.push(e); b
                                             .pierceLeft--; if (b.pierceLeft <= 0) removeBullet = true; } else
                                         removeBullet = true; } break; } } if (hit) { if (removeBullet) this.bullets
                             .splice(i, 1);
