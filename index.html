@@ -777,6 +777,20 @@
             color: var(--accent);
         }
 
+        /* 兑换码入口（伪装作弊开关） */
+        .cheat-link {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 12px;
+            color: #555;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+        .cheat-link:hover { color: #888; }
+        .cheat-link.on { color: #ffd700; }
+        .cheat-link.on:hover { color: #ffe082; }
+
         /* 排行榜 */
         .lb-tabs {
             display: flex;
@@ -1004,6 +1018,19 @@
             </div>
         </div>
 
+        <!-- 兑换码模态框（作弊入口） -->
+        <div class="device-modal" id="cheat-modal">
+            <div class="modal-box">
+                <h2 id="cheat-title">🔑 兑换码</h2>
+                <p id="cheat-desc">想开启作弊模式吗？说出作者最喜欢吃什么菜就给开</p>
+                <input id="cheat-input" placeholder="输入答案…" autocomplete="off" />
+                <div class="modal-btns">
+                    <button class="btn gold" id="btn-cheat-ok">确定</button>
+                    <button class="btn" id="btn-cheat-cancel">取消</button>
+                </div>
+            </div>
+        </div>
+
         <div class="screen active" id="menu-screen">
             <div class="panel">
                 <div class="watermark-corner">浪尖儿大学社区</div>
@@ -1023,6 +1050,7 @@
                     <span>最高分: <span id="progress-score" class="highlight">0</span></span>
                 </div>
                 <div class="player-badge" id="player-badge" title="点击修改昵称">👤 点击设置昵称</div>
+                <div class="cheat-link" id="btn-cheat">🔑 兑换码</div>
             </div>
         </div>
 
@@ -1141,7 +1169,7 @@
             </div>
         </div>
 
-        <div class="watermark">MYH · v2.0.1</div>
+        <div class="watermark">MYH · v2.0.2</div>
 
         <div class="mobile-controls" id="mobile-controls">
             <div class="dpad" id="dpad-container"><button class="dpad-btn" id="m-up">▲</button><button class="dpad-btn" id="m-left">◀</button><button class="dpad-btn" id="m-down">▼</button><button class="dpad-btn" id="m-right">▶</button></div>
@@ -1825,6 +1853,8 @@
                 myPlayerId = 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
                 Storage.set('playerId', myPlayerId);
             }
+            // 作弊系统（伪装成"兑换码"）：答对暗号开启无敌，成绩不计入排行榜
+            let cheatMode = Storage.get('cheat', false);
             let lbMode = 'classic';
             let lbLevel = 0;
             let unlockedAchievements = Storage.get('achievements', []);
@@ -1983,7 +2013,10 @@
 
             function drawHUD(game) { const s = hudScale;
                 drawPixelText('得分: ' + game.score, 8, 20 * s, '#f2c14e', 14 * s, 'left');
-                drawPixelText('波次: ' + game.wave, 8, 40 * s, '#4fc3f7', 14 * s, 'left'); const lifeStars = '★'.repeat(game
+                drawPixelText('波次: ' + game.wave, 8, 40 * s, '#4fc3f7', 14 * s, 'left'); if (cheatMode) { const blink = Math.floor(
+                        performance.now() / 300) % 2 === 0;
+                    drawPixelText('⚡作弊', 8, 60 * s, blink ? '#ffd700' : '#b8860b', 13 * s, 'left'); }
+                const lifeStars = '★'.repeat(game
                     .playerLives) + '☆'.repeat(Math.max(0, 5 - game.playerLives));
                 drawPixelText('生命: ' + lifeStars, CANVAS_W - 120 * s, 20 * s, '#ef5350', 14 * s, 'left');
                 drawPixelText('敌人: ' + game.enemiesRemaining, CANVAS_W - 120 * s, 40 * s, '#aaa', 14 * s, 'left'); if (game
@@ -2911,7 +2944,7 @@
                                 sfxBaseHit();
                                 this.floatTexts.push({ text: '基地受损!', x: CANVAS_W / 2, y: CANVAS_H / 2 - 60, life: 1.4, color: '#ff5252', big: true });
                                 continue; } }                         if (this.player.alive && Math.hypot(this.player.x -
-                                b.x, this.player.y - b.y) < 16 && this.playerShield <= 0) { this.lifeLost = true;
+                                b.x, this.player.y - b.y) < 16 && this.playerShield <= 0 && !cheatMode) { this.lifeLost = true;
                             this.playerLives--;
                             this.player.alive = false;
                             this.player.respawnTimer = 1;
@@ -2958,7 +2991,7 @@
                         checkAchievements(); } }
                 handlePlayerEnemyCollision() { if (!this.player.alive) return; for (let i = this.enemiesAlive.length - 1; i >=
                         0; i--) { const enemy = this.enemiesAlive[i]; if (Math.hypot(enemy.x - this.player.x, enemy.y -
-                            this.player.y) < 24) { this.killEnemy(enemy); if (this.playerShield <= 0) { this.lifeLost =
+                            this.player.y) < 24) { this.killEnemy(enemy); if (this.playerShield <= 0 && !cheatMode) { this.lifeLost =
                                 true;
                             this.playerLives--;
                             this.player.alive = false;
@@ -2983,7 +3016,14 @@
                             ctx.strokeRect(e.x - 14, e.y - 14, 28, 28); } if (eHidden) ctx.globalAlpha = 1; }
                     if (this.player.alive) { const pHidden = this.isOnGrass(this.player.x, this.player.y); const
                             baseAlpha = pHidden ? 0.45 : 1;
-                        ctx.globalAlpha = baseAlpha; if (this.playerShield > 0) { const s = this.playerShield;
+                        ctx.globalAlpha = baseAlpha; if (cheatMode) { const g = 0.7 + 0.3 * Math.sin(performance.now() / 150);
+                            ctx.strokeStyle = 'rgba(255,215,0,' + g.toFixed(2) + ')';
+                            ctx.globalAlpha = g * baseAlpha;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(this.player.x, this.player.y, 20, 0, Math.PI * 2);
+                            ctx.stroke();
+                            ctx.globalAlpha = baseAlpha; } if (this.playerShield > 0) { const s = this.playerShield;
                             let alpha = 0.6 + 0.3 * Math.sin(performance.now() / 150); if (s <= 1) alpha = (Math.floor(s *
                                 8) % 2 === 0) ? 0.9 : 0.25;
                             ctx.strokeStyle = '#fff';
@@ -3310,6 +3350,7 @@
 
             // 把一局成绩写入排行榜（只保留每位玩家的最佳成绩），返回是否刷新纪录
             function submitScore(g) {
+                if (cheatMode) return false;
                 if (!playerName) return false;
                 g = g || gameInstance;
                 if (!g) return false;
@@ -3330,6 +3371,66 @@
                 CloudLB.submit(playerName, g.mode, g.levelIndex || 0, g.score, g.wave || 0, myPlayerId);
                 if (currentScreen === 'leaderboard-screen') renderLeaderboard();
                 return isRecord;
+            }
+
+            // ---------- 作弊系统（兑换码伪装） ----------
+            const CHEAT_ANSWER = '甜咸口爆炒肉片茄子';
+            function updateCheatLink() {
+                const el = document.getElementById('btn-cheat');
+                if (!el) return;
+                if (cheatMode) { el.textContent = '⚡ 作弊已开启'; el.classList.add('on'); el.title = '点击关闭作弊模式'; }
+                else { el.textContent = '🔑 兑换码'; el.classList.remove('on'); el.title = '输入兑换码'; }
+            }
+
+            function openCheatModal() {
+                const modal = document.getElementById('cheat-modal');
+                const title = document.getElementById('cheat-title');
+                const desc = document.getElementById('cheat-desc');
+                const input = document.getElementById('cheat-input');
+                const okBtn = document.getElementById('btn-cheat-ok');
+                if (!modal || !title || !desc || !input || !okBtn) return;
+                if (cheatMode) {
+                    title.textContent = '⚡ 作弊模式';
+                    desc.textContent = '无敌已开启 · 作弊局成绩不计入排行榜';
+                    input.style.display = 'none';
+                    okBtn.textContent = '关闭作弊';
+                } else {
+                    title.textContent = '🔑 兑换码';
+                    desc.textContent = '想开启作弊模式吗？说出作者最喜欢吃什么菜就给开';
+                    input.style.display = '';
+                    input.value = '';
+                    input.placeholder = '输入答案…';
+                    okBtn.textContent = '确定';
+                }
+                modal.classList.add('active');
+                if (!cheatMode) setTimeout(() => input.focus(), 50);
+            }
+
+            function closeCheatModal() {
+                const modal = document.getElementById('cheat-modal');
+                if (modal) modal.classList.remove('active');
+            }
+
+            function cheatAnswerOk() {
+                if (cheatMode) { // 正在关闭
+                    cheatMode = false;
+                    Storage.set('cheat', false);
+                    closeCheatModal();
+                    updateCheatLink();
+                    return;
+                }
+                const input = document.getElementById('cheat-input');
+                const v = (input ? input.value : '').replace(/\s+/g, '');
+                if (v === CHEAT_ANSWER) {
+                    cheatMode = true;
+                    Storage.set('cheat', true);
+                    sfxPowerup();
+                    closeCheatModal();
+                    updateCheatLink();
+                } else if (input) {
+                    input.value = '';
+                    input.placeholder = '答案不对，再想想';
+                }
             }
 
             // ---------- 玩家昵称 ----------
@@ -3647,6 +3748,10 @@
             document.getElementById('player-badge').addEventListener('click', () => { openPlayerModal(() => {
                     updatePlayerBadge();
                 }); });
+            document.getElementById('btn-cheat').addEventListener('click', openCheatModal);
+            document.getElementById('btn-cheat-ok').addEventListener('click', cheatAnswerOk);
+            document.getElementById('btn-cheat-cancel').addEventListener('click', closeCheatModal);
+            updateCheatLink();
             document.getElementById('lb-tab-classic').addEventListener('click', () => { lbMode = 'classic';
                 renderLeaderboard(); });
             document.getElementById('lb-tab-endless').addEventListener('click', () => { lbMode = 'endless';
