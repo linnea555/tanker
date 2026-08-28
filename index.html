@@ -2944,16 +2944,13 @@
                                 sfxBaseHit();
                                 this.floatTexts.push({ text: '基地受损!', x: CANVAS_W / 2, y: CANVAS_H / 2 - 60, life: 1.4, color: '#ff5252', big: true });
                                 continue; } }                         if (this.player.alive && Math.hypot(this.player.x -
-                                b.x, this.player.y - b.y) < 16 && this.playerShield <= 0 && !cheatMode) { this.lifeLost = true;
+                                b.x, this.player.y - b.y) < 16) { this.enemyBullets.splice(i, 1); if (this.playerShield <= 0 && !cheatMode) { this.lifeLost = true;
                             this.playerLives--;
                             this.player.alive = false;
                             this.player.respawnTimer = 1;
                             this.specialWeapon = null;
                             this.specialWeaponTimer = 0;
-                                this.enemyBullets.splice(i, 1);
-                                this.spawnExplosion(b.x, b.y, 8, ['#9e9e9e', '#ff5722', '#4e342e'], 20); if (this.playerLives <= 0) this.loseGame('lives'); continue; }
-                        if (this.player.alive && this.playerShield > 0 && Math.hypot(this.player.x - b.x, this
-                            .player.y - b.y) < 16) { this.enemyBullets.splice(i, 1); } }
+                                this.spawnExplosion(b.x, b.y, 8, ['#9e9e9e', '#ff5722', '#4e342e'], 20); if (this.playerLives <= 0) this.loseGame('lives'); } else if (cheatMode) { this.spawnExplosion(b.x, b.y, 1, ['#ffd700', '#ffe082'], 10); } continue; } }
                     if (this.bullets.length > 0 && this.enemyBullets.length > 0) { const remainingPlayerBullets = [];
                         for (let i = 0; i < this.bullets.length; i++) { const pb = this.bullets[i]; let cancelled =
                             false; for (let j = this.enemyBullets.length - 1; j >= 0; j--) { const eb = this
