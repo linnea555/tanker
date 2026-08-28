@@ -367,6 +367,9 @@
             justify-content: center;
             touch-action: none;
             cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         .dpad-btn:active {
             background: rgba(255, 255, 255, 0.3);
@@ -2212,14 +2215,32 @@
                             'p' || k === 'escape') this.togglePause(); }, sig);
                     window.addEventListener('keyup', (e) => { this.keys[e.key.toLowerCase()] = false; }, sig);
                     const bindDir = (id, dir) => {
-                        document.getElementById(id).addEventListener('touchstart', () => this.mobileDir = dir, sig);
-                        document.getElementById(id).addEventListener('touchend', () => { if (this.mobileDir === dir)
-                                this.mobileDir = null; }, sig);
+                        const el = document.getElementById(id);
+                        if (!el) return;
+                        const press = (e) => { e.preventDefault(); this.mobileDir = dir; if (el.setPointerCapture && e
+                                .pointerId !== undefined) { try { el.setPointerCapture(e.pointerId); } catch (err) {} } };
+                        const release = (e) => { if (e.cancelable) e.preventDefault(); if (this.mobileDir === dir) this
+                                .mobileDir = null; };
+                        if (window.PointerEvent) {
+                            el.addEventListener('pointerdown', press, sig);
+                            el.addEventListener('pointerup', release, sig);
+                            el.addEventListener('pointercancel', release, sig);
+                            el.addEventListener('pointerleave', release, sig);
+                            el.addEventListener('lostpointercapture', release, sig);
+                        } else {
+                            el.addEventListener('touchstart', press, sig);
+                            el.addEventListener('touchend', release, sig);
+                            el.addEventListener('touchcancel', release, sig);
+                        }
                     };
                     bindDir('m-up', DIR_UP);
                     bindDir('m-down', DIR_DOWN);
                     bindDir('m-left', DIR_LEFT);
                     bindDir('m-right', DIR_RIGHT);
+                    // 窗口失焦/切后台时清空方向，避免卡键
+                    window.addEventListener('blur', () => { this.mobileDir = null; }, sig);
+                    document.addEventListener('visibilitychange', () => { if (document.hidden) this.mobileDir = null; },
+                        sig);
                     // 开火已统一为自动开火，无手动射击操作
                 }
                 togglePause() { if (this.gameOver) return;
